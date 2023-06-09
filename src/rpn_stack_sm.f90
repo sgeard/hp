@@ -153,7 +153,7 @@ contains
         complex(8) :: z
         character(len=:), allocatable :: str_re, str_im
         iostat = 0
-        iomsg = ""
+        !iomsg = ""
         z = se%zdata
         if (complex_mode) then
             call to_string(z%re,str_re)

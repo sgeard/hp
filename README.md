@@ -44,3 +44,23 @@ Examples
     hp "2 -- complex sqrt ="                      -> (0.00000,-1.414214)
     hp -c "radians (1,pi_over_2)p ^ * degrees ="  -> (1.000000,180.000000) p
 ```
+
+## Build and Test with FPM
+
+   To build with fpm(1) 
+   ( as described at [Fortran Package Manager](https://github.com/fortran-lang/fpm) )
+   enter:
+
+   ```bash
+        git clone https://github.com/sgeard/hp.git
+        cd hp
+        fpm test
+        fpm run 
+   ```
+
+   or just list it as a dependency in your fpm.toml project file.
+
+```toml
+        [dependencies]
+        hp        = { git = "https://github.com/sgeard/hp.git" }
+```

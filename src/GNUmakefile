@@ -9,10 +9,10 @@ F:= ifort
 SRC := rpn_stack.f90 rpn_stack_sm.f90 linked_list.f90 amap.f90
 OBJ := $(SRC:%.f90=%.o)
 
-hp: hp.f90 $(OBJ)
-	$(F) -o $@ hp.f90 $(OBJ) $(F_OPTS)
+hp: ../app/main.f90 $(OBJ)
+	$(F) -o $@ ../app/main.f90 $(OBJ) $(F_OPTS)
 
-hp.exe: hp.f90 GNUmakefile
+hp.exe: /app/main.f90 GNUmakefile
 	$(F) -o $@ $< $(F_OPTS)
 	
 rpn_stack_sm.o: rpn_stack_sm.f90
@@ -27,8 +27,8 @@ linked_list.o: linked_list.f90
 amap.o: amap.f90
 	$(F) -c -o $@ $< $(F_OPTS)
 
-test_amap: test_amap.f90 amap.o
-	$(F) -o $@ test_amap.f90 amap.o
+test_amap: ../test/test_amap.f90 amap.o
+	$(F) -o $@ ../test/test_amap.f90 amap.o
 
 clean:
 	@rm -vf *.o *.mod *.smod *~
@@ -41,8 +41,8 @@ force: veryclean
 
 export: hp.tar
 
-hp.tar: GNUmakefile hp.f90 $(SRC)
-	tar cf $@ hp.f90 $(SRC) GNUmakefile
+hp.tar: GNUmakefile ../app/hp.f90 $(SRC)
+	tar cf $@ ../app/hp.f90 $(SRC) GNUmakefile
 
 help:
 	@echo "SRC = $(SRC)"
