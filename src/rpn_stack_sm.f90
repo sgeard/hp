@@ -1,5 +1,6 @@
 ! Implementation code for stack
 submodule (rpn_stack) stack_sm
+    use iso_fortran_env, only: output_unit
     implicit none
 
 contains
@@ -22,8 +23,8 @@ contains
         integer :: i, j
         if (ve_mode) then
             do i=stk%high_water,1,-1
-                write(6,fmt='(a)',advance='no') stk%legend(i)//' '
-                write(6,'(dt)') stk%sdata(i)
+                write(output_unit,fmt='(a)',advance='no') stk%legend(i)//' '
+                write(output_unit,'(dt)') stk%sdata(i)
             end do
         else
             write(6,fmt='(dt)') stk%sdata(1)
@@ -141,6 +142,9 @@ end submodule stack_sm
 
 ! Implementation code for rpn_t
 submodule (rpn_stack) rpn_sm
+    use iso_fortran_env, only: output_unit
+    implicit none
+
 contains
 
     module subroutine write_rpns(se, unit, iotype, v_list, iostat, iomsg)
@@ -159,13 +163,13 @@ contains
             call to_string(z%re,str_re)
             call to_string(z%im,str_im)
             if (se%is_cartesian()) then
-                write(6,'(a)') '('//str_re//','//str_im//')'
+                write(output_unit,'(a)') '('//str_re//','//str_im//')'
             else
-                write(6,'(a)') '('//str_re//','//str_im//') p'
+                write(output_unit,'(a)') '('//str_re//','//str_im//') p'
             end if
         else
             call to_string(z%re,str_re)
-            write(6,'(a)') str_re
+            write(output_unit,'(a)') str_re
         end if
 
     end subroutine write_rpns
