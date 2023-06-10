@@ -1,7 +1,6 @@
 ---
 src_dir: src
          app
-         example
          test
 output_dir: docs/fpm-ford
 project: hp
