@@ -56,6 +56,10 @@ Examples
         cd hp
         fpm test
         fpm run 
+   # or using the response file (saves writing --compiler ifort everywhere)
+        fpm @build
+        fpm @test
+        fpm @run
    ```
 
    or just list it as a dependency in your fpm.toml project file.
@@ -64,3 +68,4 @@ Examples
         [dependencies]
         hp        = { git = "https://github.com/sgeard/hp.git" }
 ```
+

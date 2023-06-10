@@ -1,0 +1,11 @@
+@build
+> Building with ifort
+options build --compiler ifort
+###############################
+@run
+> Running
+options run --compiler ifort
+###############################
+@test
+> Running tests on amap
+options test --compiler ifort
