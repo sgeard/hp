@@ -24,6 +24,8 @@ module amap
         generic, public    :: write(formatted) => write_value_t
         procedure, private :: set_to_value_t
         generic, public    :: assignment(=) => set_to_value_t
+        procedure, private :: equals_value_t
+        generic, public    :: operator(==) => equals_value_t
     end type value_t
     
     ! Map elements are (key,value) pairs
@@ -45,6 +47,7 @@ module amap
         procedure, public  :: find => find_amap_t
         procedure, public  :: print => print_amap_t
         procedure, public  :: clear => clear_amap_t
+        procedure, public  :: size => size_amap_t
         procedure, private :: is_key_kt
         procedure, private :: is_key_kvt
         generic, public    :: contains => is_key_kt, is_key_kvt
@@ -52,6 +55,12 @@ module amap
 
 contains
 
+    function size_amap_t(this) result(r)
+        class(amap_t), intent(in) :: this
+        integer :: r
+        r = this%high_water
+    end function size_amap_t
+    
     subroutine clear_amap_t(this)
         class(amap_t), intent(inout)  :: this
         if (allocated(this%pairs)) then
@@ -168,6 +177,13 @@ contains
         logical :: r
         r = trim(adjustl(this%k)) == trim(adjustl(k%k))
     end function equals_key_t
+    
+    function equals_value_t(this, v) result(r)
+        class(value_t), intent(in) :: this
+        real(8), intent(in) :: v
+        logical :: r
+        r = this%v == v
+    end function equals_value_t
     
     subroutine write_key_t(key, unit, iotype, v_list, iostat, iomsg)
         class(key_t), intent(in)    :: key
