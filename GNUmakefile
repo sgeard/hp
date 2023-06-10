@@ -1,37 +1,41 @@
-.PHONY: veryclean clean force export help
-
-ifdef debug
-F_OPTS := -ggdb
-endif
+.PHONY: veryclean clean force export help test run
 
 F:= ifort
+BUILD_DIR := build
 
-SRC := rpn_stack.f90 rpn_stack_sm.f90 linked_list.f90 amap.f90
-OBJ := $(SRC:%.f90=%.o)
+HP_LIB := $(BUILD_DIR)/libhp.a
 
-hp: ../app/main.f90 $(OBJ)
-	$(F) -o $@ ../app/main.f90 $(OBJ) $(F_OPTS)
+F_OPTS := -fpic -module $(BUILD_DIR)
 
-hp.exe: /app/main.f90 GNUmakefile
-	$(F) -o $@ $< $(F_OPTS)
+ifdef debug
+F_OPTS += -ggdb -debug-parameters used
+endif
+
+SRC := $(wildcard src/*.f90)
+OBJ := $(SRC:src/%.f90=$(BUILD_DIR)/%.o)
+
+EXE := $(BUILD_DIR)/hp
+
+$(EXE): $(BUILD_DIR) app/main.f90 $(HP_LIB)
+	$(F) -o $@ app/main.f90 $(HP_LIB) $(F_OPTS)
+
+$(HP_LIB): $(BUILD_DIR) $(OBJ)
+	ar crv $@ $(OBJ)
+
+$(OBJ) : $(BUILD_DIR)/%.o : src/%.f90
+	$(F) -c -o $@ $< $(F_OPTS)
+
+test_amap: test/test_amap.f90 $(BUILD_DIR)/amap.o
+	$(F) -o $@  $(F_OPTS) test/test_amap.f90 $(BUILD_DIR)/amap.o
 	
-rpn_stack_sm.o: rpn_stack_sm.f90
-	$(F) -c -o $@ $< $(F_OPTS)
+test: test_amap
+	./test_amap
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 	
-rpn_stack.o: rpn_stack.f90
-	$(F) -c -o $@ $< $(F_OPTS)
-
-linked_list.o: linked_list.f90
-	$(F) -c -o $@ $< $(F_OPTS)
-
-amap.o: amap.f90
-	$(F) -c -o $@ $< $(F_OPTS)
-
-test_amap: ../test/test_amap.f90 amap.o
-	$(F) -o $@ ../test/test_amap.f90 amap.o
-
 clean:
-	@rm -vf *.o *.mod *.smod *~
+	@rm -vf $(OBJ) $(BUILD_DIR)/*.mod $(BUILD_DIR)/*.smod *~
 
 veryclean: clean
 	@rm -vf hp hp.exe hp.tar
@@ -41,8 +45,11 @@ force: veryclean
 
 export: hp.tar
 
-hp.tar: GNUmakefile ../app/hp.f90 $(SRC)
-	tar cf $@ ../app/hp.f90 $(SRC) GNUmakefile
+run: $(EXE)
+	./$<
+	
+hp.tar: GNUmakefile app/main.f90 $(SRC)
+	tar cf $@ app/main.f90 $(SRC) GNUmakefile
 
 help:
 	@echo "SRC = $(SRC)"
