@@ -9,3 +9,11 @@ options run --compiler ifort
 @test
 > Running tests on amap
 options test --compiler ifort
+###############################
+@clean
+> Removing objects and libraries
+options clean --skip
+###############################
+@veryclean
+> Removing all objects and dependencies
+options clean --all
