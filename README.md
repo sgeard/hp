@@ -6,8 +6,14 @@ and will calculate summary statistics for a set of reals of real pairs. Spaces a
 to distinguish tokens.
 
 ## Building
-The source code is written in *Fortran*. The only compilers I've found that will build it are *ifort* and *ifx* from Intel's
-OneApi suite. Makefiles are provides for GNU make (Linux) and nmake (Windows).
+
+This code does not build with the default compiler on most systems and in fact is only known to build
+with *ifort* from Intel's OneAPI (you'll need both *basic* and *hpc* to get the Fortran compiler):
+https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html
+
+Makefiles are provided that will build this application on Windows or Linux using either *nmake* or *make* respectively.
+
+## Basic help
 
 ```
 hp -h
@@ -34,7 +40,7 @@ Functions: sin cos tan asin acos atan sinh cosh tanh log2 log lg len sq sqrt cb 
   Actions: 1/ -- R r ? > < split drop
     Stats: { x1 x2 ... } { x1,y1 x2,y2 ... }
            n ux sx mx lqx uqx uy sy my lqy uqy a b cov corr
-    Quits: q
+    Quits: q =
 
 -------------------------------------------------------------------------------
 
@@ -47,6 +53,7 @@ Examples
 
 ## Build and Test with FPM
 
+   
    To build with fpm(1) 
    ( as described at [Fortran Package Manager](https://github.com/fortran-lang/fpm) )
    enter:
@@ -54,9 +61,10 @@ Examples
    ```bash
         git clone https://github.com/sgeard/hp.git
         cd hp
-        fpm test
-        fpm run 
-   # or using the response file (saves writing --compiler ifort everywhere)
+        fpm test --compiler ifort
+        fpm run --compiler ifort
+        
+        # or using the response file (saves writing --compiler ifort everywhere)
         fpm @build
         fpm @test
         fpm @run
