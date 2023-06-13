@@ -5,7 +5,7 @@ program hp15c
     
     implicit none
     
-    real(8)                   :: x
+    real(real64)                   :: x
     integer                   :: ios, i
     integer                   :: verbosity = 0
     character(100)            :: buff
@@ -13,16 +13,16 @@ program hp15c
     integer                   :: argl, argc
     type(llist)               :: tokens
 
-    real(8), parameter :: ag = 9.80665d0
-    real(8), parameter :: g = 6.67430d-11
-    real(8), parameter :: e = exp(1.0d0)
-    real(8), parameter :: c = 2.99792458d8
+    real(real64), parameter :: ag = 9.80665d0
+    real(real64), parameter :: g = 6.67430d-11
+    real(real64), parameter :: e = exp(1.0d0)
+    real(real64), parameter :: c = 2.99792458d8
     type(amap_t)       :: constants
     
     type(amap_t)       :: stats
     integer            :: in_sequence = 0
     logical            :: seq_is_x
-    real(8), allocatable  :: x_seq(:), y_seq(:)
+    real(real64), allocatable  :: x_seq(:), y_seq(:)
     integer            :: n_seq = 0
     
     logical      :: veMode = .false.
@@ -203,9 +203,9 @@ contains
     character(*), intent(in) :: command
     logical, intent(out)     :: ok
 
-    real(8)                 :: r, im
+    real(real64)                 :: r, im
     complex(8)              :: u, z
-    real(8), allocatable    :: tmp_seq(:)
+    real(real64), allocatable    :: tmp_seq(:)
     type(rpn_t)             :: us, zs
     integer                 :: m, idx
     
@@ -679,8 +679,8 @@ contains
     end subroutine apply_command
 
     subroutine calculate_stats
-        real(8) :: a, b, c, sxy
-        real(8) :: s(5,2)
+        real(real64) :: a, b, c, sxy
+        real(real64) :: s(5,2)
 
         call summary_stats(x_seq(1:n_seq),s(1,1),s(2,1),s(3,1),s(4,1),s(5,1))
         call stats%set('n',real(n_seq,8))
@@ -726,9 +726,9 @@ contains
     end subroutine calculate_stats
     
     subroutine calculate_regression(mean_x, mean_y, a, b, c, sxy)
-        real(8), intent(in) :: mean_x, mean_y
-        real(8), intent(out) :: a, b, c, sxy
-        real(8) :: sxx, syy
+        real(real64), intent(in) :: mean_x, mean_y
+        real(real64), intent(out) :: a, b, c, sxy
+        real(real64) :: sxx, syy
         sxy = sum(x_seq(1:n_seq)*y_seq(1:n_seq))/n_seq - mean_x*mean_y
         sxx = sum(x_seq(1:n_seq)*x_seq(1:n_seq))/n_seq - mean_x**2
         syy = sum(y_seq(1:n_seq)*y_seq(1:n_seq))/n_seq - mean_y**2
@@ -739,8 +739,8 @@ contains
     
     subroutine print_value(name, x, y)
         character(len=*), intent(in)  :: name
-        real(8), intent(in)           :: x
-        real(8), intent(in), optional :: y
+        real(real64), intent(in)           :: x
+        real(real64), intent(in), optional :: y
         character(len=:), allocatable :: fmt_x, fmt_y
         call to_string(x, fmt_x)
         if (present(y)) then
@@ -751,10 +751,10 @@ contains
     end subroutine print_value
 
     subroutine summary_stats(a, mean, median, stddev, lower_q, upper_q)
-        real(8), intent(in)  :: a(:)
-        real(8), intent(out) :: mean, median, stddev, lower_q, upper_q
-        real(8) :: b(size(a))
-        real(8) :: s, s2
+        real(real64), intent(in)  :: a(:)
+        real(real64), intent(out) :: mean, median, stddev, lower_q, upper_q
+        real(real64) :: b(size(a))
+        real(real64) :: s, s2
         integer :: m, n
         n = size(a)
         b = a
@@ -778,9 +778,9 @@ contains
     end subroutine summary_stats
     
     function calc_median(a, mid) result(r)
-        real(8), intent(in)  :: a(:)
+        real(real64), intent(in)  :: a(:)
         integer, intent(out), optional :: mid
-        real(8) :: r
+        real(real64) :: r
         integer :: m, n
         n = size(a)
         m = n/2
@@ -797,8 +797,8 @@ contains
         
     ! 'a' won't be very big so a simple n**2 algorithm will do
     subroutine sort(a)
-        real(8), intent(inout) :: a(:)
-        real(8) :: b(size(a))
+        real(real64), intent(inout) :: a(:)
+        real(real64) :: b(size(a))
         integer :: i, j(size(a))
         logical :: mask(size(a))
         mask = .true.

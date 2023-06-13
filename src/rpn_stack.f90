@@ -1,4 +1,5 @@
 module rpn_stack
+    use iso_fortran_env, only: real64
     implicit none
     
     ! Type for the data that's going on to the stack
@@ -75,7 +76,7 @@ module rpn_stack
         end subroutine push_stackt
         module subroutine push_r_stackt(stk, x)
             class(stack_t(*)), intent(inout) :: stk
-            real(8) :: x
+            real(real64) :: x
         end subroutine push_r_stackt
         module subroutine push_all_stackt(stk, z, is_cart)
             class(stack_t(*)), intent(inout) :: stk
@@ -175,14 +176,14 @@ module rpn_stack
         end function divide_rpns
         module function power_rpns(this, x) result(r)
             class(rpn_t), intent(in) :: this
-            real(8), intent(in) :: x
+            real(real64), intent(in) :: x
             type(rpn_t) :: r
         end function power_rpns        
     end interface
     
-    real(8), parameter :: pi = 4*atan(1.0d0)
-    real(8), parameter :: to_rad = pi/180
-    real(8), parameter :: to_deg = 180/pi
+    real(real64), parameter :: pi = 4*atan(1.0d0)
+    real(real64), parameter :: to_rad = pi/180
+    real(real64), parameter :: to_deg = 180/pi
 
     character(5), private :: decimal = 'POINT'
     
@@ -195,7 +196,7 @@ module rpn_stack
     integer               :: dec_places = 6
     logical               :: degrees_mode = .true.
     logical               :: complex_mode = .false.
-    real(8)               :: eps = 1.0d-14
+    real(real64)               :: eps = 1.0d-14
     
     ! Functions interface
     interface
@@ -413,8 +414,8 @@ module rpn_stack
         end function atangent2_fr
         
         module function round(x) result(r)
-            real(8), intent(in) :: x
-            real(8) ::r
+            real(real64), intent(in) :: x
+            real(real64) ::r
         end function round
         
         module subroutine init(lang)
@@ -430,7 +431,7 @@ module rpn_stack
         end function get_places
         
         module subroutine to_string(x, str)
-            real(8), intent(in) :: x
+            real(real64), intent(in) :: x
             character(len=:), allocatable, intent(out) :: str
         end subroutine to_string
     end interface

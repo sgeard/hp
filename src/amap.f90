@@ -1,5 +1,6 @@
-! Associative map string -> real(8)
+! Associative map string -> real(real64)
 module amap
+    use iso_fortran_env, only: real64
     implicit none
     
     ! The key
@@ -18,7 +19,7 @@ module amap
     ! The value
     type value_t
         private
-        real(8) :: v = huge(0.0d0) ! An out-of-band value
+        real(real64) :: v = huge(0.0d0) ! An out-of-band value
     contains
         procedure, private :: write_value_t
         generic, public    :: write(formatted) => write_value_t
@@ -77,7 +78,7 @@ contains
     
     subroutine set_to_value_t(this, v)
         class(value_t), intent(inout)  :: this
-        real(8), intent(in) :: v
+        real(real64), intent(in) :: v
         this%v = v
     end subroutine set_to_value_t
 
@@ -93,7 +94,7 @@ contains
     subroutine set_amap_t(this,kv,vv)
         class(amap_t), intent(inout) :: this
         character(len=*), intent(in) :: kv
-        real(8), intent(in)          :: vv
+        real(real64), intent(in)          :: vv
         type(pair_t), allocatable :: tmp_pairs(:)
         type(key_t)               :: k
         type(value_t)             :: v
@@ -151,7 +152,7 @@ contains
     function get_value_amap_t(this, kv) result(r)
         class(amap_t), intent(in)    :: this
         character(len=*), intent(in) :: kv
-        real(8) :: r
+        real(real64) :: r
         type(value_t) :: s
         s = this%get(kv)
         r = s%v
@@ -180,7 +181,7 @@ contains
     
     function equals_value_t(this, v) result(r)
         class(value_t), intent(in) :: this
-        real(8), intent(in) :: v
+        real(real64), intent(in) :: v
         logical :: r
         r = this%v == v
     end function equals_value_t

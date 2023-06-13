@@ -45,7 +45,7 @@ contains
     
     module subroutine push_r_stackt(stk, x)
         class(stack_t(*)), intent(inout) :: stk
-        real(8) :: x
+        real(real64) :: x
         type(rpn_t) :: z
         z = rpn_t(cmplx(x,0.0d0))
         call stk%push_stackt(z)
@@ -176,7 +176,7 @@ contains
     
     ! Convert real to string inserting a leading 0 if necessary
     module subroutine to_string(x, str)
-        real(8), intent(in) :: x
+        real(real64), intent(in) :: x
         character(len=:), allocatable, intent(out) :: str
         character(len=32) :: s
         s = ' '
@@ -200,7 +200,7 @@ contains
     module function is_integer_rpns(this) result(r)
         class(rpn_t), intent(in) :: this
         logical :: r
-        real(8) :: x
+        real(real64) :: x
         x = this%zdata%re
         r = (abs(nint(x)-x) < eps .and. abs(this%zdata%im) < eps)
     end function is_integer_rpns
@@ -354,7 +354,7 @@ contains
     
     module function power_rpns(this, x) result(r)
         class(rpn_t), intent(in) :: this
-        real(8), intent(in) :: x
+        real(real64), intent(in) :: x
         type(rpn_t) :: r
         type(rpn_t) :: z
         logical     :: is_cart
@@ -373,8 +373,8 @@ contains
     module function to_cartesian_rpns(stk_z) result(r)
         type(rpn_t), intent(in) :: stk_z
         type(rpn_t) :: r
-        real(8) :: s
-        real(8) :: theta
+        real(real64) :: s
+        real(real64) :: theta
         if (.not. stk_z%is_cartesian()) then
             s = stk_z%zdata%re
             theta = stk_z%zdata%im * merge(to_rad,1.0d0,degrees_mode)
@@ -398,8 +398,8 @@ contains
     contains
         complex(8) function to_polar_internal(z)
             complex(8), intent(in) :: z
-            real(8) :: r
-            real(8) :: theta
+            real(real64) :: r
+            real(real64) :: theta
             r = sqrt(real(z * conjg(z),8))
             theta = atan2(aimag(z), real(z))
             to_polar_internal%re = r
@@ -497,7 +497,7 @@ contains
     module function swap_real_imaginary_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        real(8) :: x
+        real(real64) :: x
         r = a
         x = r%zdata%re
         r%zdata%re = r%zdata%im
@@ -650,13 +650,13 @@ contains
         type(rpn_t), intent(in) :: a
         type(rpn_t), intent(in) :: b
         type(rpn_t) :: r
-        real(8)     :: bc
+        real(real64)     :: bc
         integer     :: i
         type(rpn_t) :: base
         complex(8)  :: z
         logical     :: a_is_cart
-        real(8)     :: s, delta_theta, theta0, phi
-        real(8), parameter :: two_pi = 8*atan(1.0d0)
+        real(real64)     :: s, delta_theta, theta0, phi
+        real(real64), parameter :: two_pi = 8*atan(1.0d0)
        
         bc = real(b%get_value())
         r = power_fr(a, rpn_t(1.0d0/bc))
@@ -728,8 +728,8 @@ contains
     end function atangent2_fr
     
     module function round(x) result(r)
-        real(8), intent(in) :: x
-        real(8) :: r
+        real(real64), intent(in) :: x
+        real(real64) :: r
         if (abs(x) < eps) then
             r = 0
         else
