@@ -20,7 +20,7 @@ contains
     module subroutine print_stackt(stk, ve_mode)
         class(stack_t(*)), intent(in) :: stk
         logical, intent(in)           :: ve_mode
-        integer :: i, j
+        integer :: i
         if (ve_mode) then
             do i=stk%high_water,1,-1
                 write(output_unit,fmt='(a)',advance='no') stk%legend(i)//' '
@@ -115,7 +115,6 @@ contains
     
     module subroutine swap_stackt(stk)
         class(stack_t(*)), intent(inout) :: stk
-        integer :: i
         type(rpn_t) :: z
         z = stk%sdata(1)
         stk%sdata(1) = stk%sdata(2)
@@ -156,22 +155,23 @@ contains
         character(*), intent(inout) :: iomsg
         complex(8) :: z
         character(len=:), allocatable :: str_re, str_im
-        iostat = 0
-        !iomsg = ""
+        
         z = se%zdata
         if (complex_mode) then
             call to_string(z%re,str_re)
             call to_string(z%im,str_im)
             if (se%is_cartesian()) then
-                write(output_unit,'(a)') '('//str_re//','//str_im//')'
+                write(unit,'(a)',iostat=iostat) '('//str_re//','//str_im//')'
             else
-                write(output_unit,'(a)') '('//str_re//','//str_im//') p'
+                write(unit,'(a)',iostat=iostat) '('//str_re//','//str_im//') p'
             end if
         else
             call to_string(z%re,str_re)
-            write(output_unit,'(a)') str_re
+            write(unit,'(a)',iostat=iostat) str_re
         end if
-
+        if (iostat /= 0) then
+            iomsg = 'output error'
+        end if
     end subroutine write_rpns
     
     ! Convert real to string inserting a leading 0 if necessary
@@ -390,7 +390,6 @@ contains
     module function to_polar_rpns(stk_z) result(r)
         type(rpn_t), intent(in) :: stk_z
         type(rpn_t) :: r
-        real(8) :: theta
         if (stk_z%is_cartesian()) then
             call r%set_value(to_polar_internal(stk_z%get_value()),is_cartesian = .false.)
         else

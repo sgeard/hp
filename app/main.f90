@@ -12,7 +12,6 @@ program hp15c
     integer                   :: blen
     integer                   :: argl, argc
     type(llist)               :: tokens
-    type(llist_node), pointer :: token
 
     real(8), parameter :: ag = 9.80665d0
     real(8), parameter :: g = 6.67430d-11
@@ -30,7 +29,7 @@ program hp15c
     logical      :: lang_en = .true.
     logical      :: tmp_cmode
     logical      :: ok
-    logical      :: getNext, numbers, have_expression
+    logical      :: have_expression
     integer      :: stat
     character(len=100) :: msg
     character(5) :: lang
@@ -40,7 +39,7 @@ program hp15c
     ! Create a stack of size 4
     type(stack_t(5)) :: stack
 
-    call stack%set_legend(['x:','y:','z:','s','t:'])
+    call stack%set_legend(['x:','y:','z:','s:','t:'])
     degrees_mode = .true.
     complex_mode = .false.
     eps = 1.0d-14
@@ -204,14 +203,11 @@ contains
     character(*), intent(in) :: command
     logical, intent(out)     :: ok
 
-    real(8)                 :: r, im, ang
+    real(8)                 :: r, im
     complex(8)              :: u, z
     real(8), allocatable    :: tmp_seq(:)
     type(rpn_t)             :: us, zs
-    logical                 :: is_cart
     integer                 :: m, idx
-    character(len=1)        :: comma
-    character(5), parameter :: lang(2) = ['POINT','COMMA']
     
     ok = .true.
     if (len_trim(command) == 0) then
@@ -629,10 +625,9 @@ contains
     case default
         ! Process constants first
         block
-            integer :: lc, is_integer,split_idx,end_idx
+            integer :: lc,split_idx,end_idx
             character(len=:), allocatable :: re_comp, im_comp
             lc = len_trim(command)
-            is_integer = (index(command,'.') == 0)
             if (complex_mode) then
                 if (command(1:1) == '(') then
                     split_idx = index(command,',')
@@ -733,7 +728,6 @@ contains
     subroutine calculate_regression(mean_x, mean_y, a, b, c, sxy)
         real(8), intent(in) :: mean_x, mean_y
         real(8), intent(out) :: a, b, c, sxy
-        integer :: i
         real(8) :: sxx, syy
         sxy = sum(x_seq(1:n_seq)*y_seq(1:n_seq))/n_seq - mean_x*mean_y
         sxx = sum(x_seq(1:n_seq)*x_seq(1:n_seq))/n_seq - mean_x**2
