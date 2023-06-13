@@ -8,12 +8,13 @@ HP_LIB := $(BUILD_DIR)/libhp.a
 # Untested NAG support
 ifeq ($(F),nagfor)
 F_OPTS := -fpic -I $(BUILD_DIR)
+
 else
 F_OPTS := -fpic -module $(BUILD_DIR)
-endif
-
 ifdef debug
 F_OPTS += -ggdb -debug-parameters used
+endif
+
 endif
 
 SRC := $(wildcard src/*.f90)
