@@ -7,9 +7,11 @@ to distinguish tokens.
 
 ## Building
 
-This code does not build with the default compiler on most systems and in fact is only known to build
-with *ifort* from Intel's OneAPI (you'll need both *basic* and *hpc* to get the Fortran compiler):
-https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html
+This code does not build with the default compiler on most systems; it is only known to build
+with *ifort* from Intel's OneAPI or _nagfor_ from NAG (thanks to https://github.com/nncarlson).
+
+The Intel compiler if freely available (you'll need both *basic* and *hpc* to get the Fortran compiler):
+https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html 
 
 Makefiles are provided that will build this application on Windows or Linux using either *nmake* or *make* respectively.
 
