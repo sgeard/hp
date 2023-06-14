@@ -27,7 +27,7 @@ contains
                 write(output_unit,'(dt)') stk%sdata(i)
             end do
         else
-            write(6,fmt='(dt)') stk%sdata(1)
+            write(output_unit,fmt='(dt)') stk%sdata(1)
         end if
     end subroutine print_stackt
     
@@ -155,7 +155,6 @@ contains
         character(*), intent(inout) :: iomsg
         complex(8) :: z
         character(len=:), allocatable :: str_re, str_im
-        
         z = se%zdata
         if (complex_mode) then
             call to_string(z%re,str_re)
@@ -736,12 +735,6 @@ contains
             r = x
         end if
     end function round
-        
-    module subroutine init(lang)
-        character(5), intent(in), optional :: lang
-        if (present(lang)) decimal = lang
-        call set_places(dec_places)
-    end subroutine init
 
     module subroutine set_places(n)
         integer, intent(in) :: n

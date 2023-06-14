@@ -417,10 +417,6 @@ module rpn_stack
             real(real64), intent(in) :: x
             real(real64) ::r
         end function round
-        
-        module subroutine init(lang)
-            character(5), intent(in), optional :: lang
-        end subroutine init
 
         module subroutine set_places(n)
             integer, intent(in) :: n

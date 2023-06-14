@@ -11,8 +11,13 @@ F_OPTS := -fpic -I $(BUILD_DIR)
 
 else
 F_OPTS := -fpic -module $(BUILD_DIR)
+
 ifdef debug
+ifeq ($(F),ifx)
+F_OPTS += -g
+else
 F_OPTS += -ggdb -debug-parameters used
+endif
 endif
 
 endif

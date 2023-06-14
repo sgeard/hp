@@ -26,13 +26,11 @@ program hp15c
     integer            :: n_seq = 0
     
     logical      :: veMode = .false.
-    logical      :: lang_en = .true.
     logical      :: tmp_cmode
     logical      :: ok
     logical      :: have_expression
     integer      :: stat
     character(len=100) :: msg
-    character(5) :: lang
 
     type(rpn_t)  :: mem(0:9) = rpn_t()
     
@@ -53,16 +51,9 @@ program hp15c
     call constants%set('two_pi',2*pi)
     call constants%set('pi_over_2',pi/2)
 
-    ! Try to read the LANG environment variable
-    call get_environment_variable('LANG',lang,status=stat)
-    lang_en = stat /= 0
-    if (.not. lang_en) then
-        lang_en = merge(.true.,.false.,lang(1:3) == 'en_')
-    end if
-    lang = merge('POINT','COMMA',lang_en)
-
-    call init(lang)
-
+    ! Decimal places
+    call set_places(dec_places)
+        
     ! Interrogate argument list
     argc = command_argument_count()
     have_expression = .false.
@@ -106,7 +97,6 @@ program hp15c
         if (.not. ok) stop
         
     end do
-    
     if (.not. have_expression) then
         call stack%print(veMode)
     end if
@@ -624,6 +614,7 @@ contains
 
     case default
         ! Process constants first
+        print *,'apply_command: default'
         block
             integer :: lc,split_idx,end_idx
             character(len=:), allocatable :: re_comp, im_comp
@@ -661,8 +652,10 @@ contains
             else
                 if (constants%contains(command)) then
                     x = constants%get_value(command)
+                    print *,command//' is constant = ',x
                 else if (stats%contains(command)) then
                     x = stats%get_value(command)
+                    print *,command//' is stats'
                 else
                     read(command,*,err=901,end=901) x
                 end if
