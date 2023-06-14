@@ -187,7 +187,7 @@ contains
     write(6,'(a)')  '  Actions: 1/ -- R r ? > < split drop'
     write(6,'(a)')  '    Stats: { x1 x2 ... } { x1,y1 x2,y2 ... }'
     write(6,'(a)')  '           n ux sx mx lqx uqx uy sy my lqy uqy a b cov corr'
-    write(6,'(a/)') '    Quits: q'
+    write(6,'(a/)') '    Quits: q ='
     write(6,'(a/)') '-------------------------------------------------------------------------------'
     write(6,'(a)')  'Examples'
     write(6,'(a)')  '--------'
