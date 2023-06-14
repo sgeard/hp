@@ -36,7 +36,7 @@ program hp15c
 
     type(rpn_t)  :: mem(0:9) = rpn_t()
     
-    ! Create a stack of size 4
+    ! Create a stack of size 5
     type(stack_t(5)) :: stack
 
     call stack%set_legend(['x:','y:','z:','s:','t:'])
