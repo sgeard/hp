@@ -614,7 +614,6 @@ contains
 
     case default
         ! Process constants first
-        print *,'apply_command: default'
         block
             integer :: lc,split_idx,end_idx
             character(len=:), allocatable :: re_comp, im_comp
@@ -652,10 +651,8 @@ contains
             else
                 if (constants%contains(command)) then
                     x = constants%get_value(command)
-                    print *,command//' is constant = ',x
                 else if (stats%contains(command)) then
                     x = stats%get_value(command)
-                    print *,command//' is stats'
                 else
                     read(command,*,err=901,end=901) x
                 end if

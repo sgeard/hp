@@ -16,7 +16,7 @@ ifdef debug
 ifeq ($(F),ifx)
 F_OPTS += -g
 else
-F_OPTS += -ggdb -debug-parameters used
+F_OPTS += -ggdb
 endif
 endif
 
