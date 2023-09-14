@@ -706,7 +706,7 @@ contains
             call stats%set('corr',c)
             call stats%set('cov',sxy)
             write(6,'(/a)') 'Regression:  y = ax + b'
-            call print_value('   gradient a      ->',a)
+            call print_value('   gradient a      -> ',a)
             call print_value('  intercept b      -> ',b)
             call print_value(' covariance cov    -> ',sxy)
             call print_value('correlation corr   -> ',c)
