@@ -1,6 +1,6 @@
 .PHONY: veryclean clean force export help test run
 
-F := ifort
+F := ifx
 BUILD_DIR := build
 
 HP_LIB := $(BUILD_DIR)/libhp.a
