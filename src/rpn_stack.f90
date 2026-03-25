@@ -1,12 +1,14 @@
 module rpn_stack
     use iso_fortran_env, only: real64
+    use AVD, T1=>avd_d1, avd_init=>init
+    use numerical
+
     implicit none
     
     ! Type for the data that's going on to the stack
     type rpn_t
-        private
-        complex(8), private   :: zdata   = 0
-        logical, private      :: is_cart = .true.
+        complex(real64), private :: zdata   = 0
+        logical, private         :: is_cart = .true.
     contains
         procedure, private :: write_rpns
         generic, public    :: write(formatted) => write_rpns
@@ -33,11 +35,10 @@ module rpn_stack
     
     ! Make the stack a parameterized derived type in case we want a different size
     type stack_t(ssize)
-        integer, len :: ssize
-        private
-        type(rpn_t)  :: sdata(ssize)
-        character(2) :: legend(ssize)
-        integer      :: high_water = 0
+        integer, len          :: ssize
+        type(rpn_t), private  :: sdata(ssize)
+        character(2), private :: legend(ssize)
+        integer, private      :: high_water = 0
     contains
         procedure, private :: push_stackt
         procedure, private :: push_all_stackt
@@ -76,7 +77,7 @@ module rpn_stack
         end subroutine push_stackt
         module subroutine push_r_stackt(stk, x)
             class(stack_t(*)), intent(inout) :: stk
-            real(real64) :: x
+            real(8) :: x
         end subroutine push_r_stackt
         module subroutine push_all_stackt(stk, z, is_cart)
             class(stack_t(*)), intent(inout) :: stk
@@ -176,14 +177,14 @@ module rpn_stack
         end function divide_rpns
         module function power_rpns(this, x) result(r)
             class(rpn_t), intent(in) :: this
-            real(real64), intent(in) :: x
+            real(8), intent(in) :: x
             type(rpn_t) :: r
         end function power_rpns        
     end interface
     
-    real(real64), parameter :: pi = 4*atan(1.0d0)
-    real(real64), parameter :: to_rad = pi/180
-    real(real64), parameter :: to_deg = 180/pi
+    real(8), parameter :: pi = 4*atan(1.0d0)
+    real(8), parameter :: to_rad = pi/180
+    real(8), parameter :: to_deg = 180/pi
 
     character(5), private :: decimal = 'POINT'
     
@@ -196,7 +197,7 @@ module rpn_stack
     integer               :: dec_places = 6
     logical               :: degrees_mode = .true.
     logical               :: complex_mode = .false.
-    real(real64)               :: eps = 1.0d-14
+    real(8)               :: eps = 1.0d-14
     
     ! Functions interface
     interface
@@ -376,6 +377,28 @@ module rpn_stack
             type(rpn_t) :: r
         end function gamma_fr
 
+        module function w_fr(a) result(r)
+            type(rpn_t), intent(in) :: a
+            real(8), allocatable    :: r(:)
+        end function w_fr
+
+        module function W(u) result(res)
+            real(8), intent(in)  :: u
+            real(8), allocatable :: res(:)
+        end function W
+
+        module function W_plus(u, err) result(res)
+            type(T1), intent(in) :: u
+            integer, optional, intent(out) :: err
+            type(T1)             :: res
+        end function W_plus
+
+        module function W_minus(u, err) result(res)
+            type(T1), intent(in) :: u
+            integer, optional, intent(out) :: err
+            type(T1)             :: res
+        end function W_minus
+
         module function fact_fr(a) result(r)
             type(rpn_t), intent(in) :: a
             type(rpn_t) :: r
@@ -414,9 +437,13 @@ module rpn_stack
         end function atangent2_fr
         
         module function round(x) result(r)
-            real(real64), intent(in) :: x
-            real(real64) ::r
+            real(8), intent(in) :: x
+            real(8) ::r
         end function round
+        
+        module subroutine init(lang)
+            character(5), intent(in), optional :: lang
+        end subroutine init
 
         module subroutine set_places(n)
             integer, intent(in) :: n
@@ -427,7 +454,7 @@ module rpn_stack
         end function get_places
         
         module subroutine to_string(x, str)
-            real(real64), intent(in) :: x
+            real(8), intent(in) :: x
             character(len=:), allocatable, intent(out) :: str
         end subroutine to_string
     end interface

@@ -1,11 +1,11 @@
 program hp15c
-    use rpn_stack
-    use linked_list, print_ll => print, clear_ll => clear, size_ll => size
+    use rpn_stack, rpn_s_init=>init
+    use linked_list
     use amap
-    
+
     implicit none
     
-    real(real64)                   :: x
+    real(8)                   :: x
     integer                   :: ios, i
     integer                   :: verbosity = 0
     character(100)            :: buff
@@ -13,29 +13,35 @@ program hp15c
     integer                   :: argl, argc
     type(llist)               :: tokens
 
-    real(real64), parameter :: ag = 9.80665d0
-    real(real64), parameter :: g = 6.67430d-11
-    real(real64), parameter :: e = exp(1.0d0)
-    real(real64), parameter :: c = 2.99792458d8
+    real(8), parameter :: ag = 9.80665d0    ! Acceleration due to gravity (g)
+    real(8), parameter :: g = 6.67430d-11   ! Gravitations constant (G)
+    real(8), parameter :: e = exp(1.0d0)    ! 'e'
+    real(8), parameter :: c = 2.99792458d8  ! Speed of light (m/s)
     type(amap_t)       :: constants
     
     type(amap_t)       :: stats
     integer            :: in_sequence = 0
     logical            :: seq_is_x
-    real(real64), allocatable  :: x_seq(:), y_seq(:)
+    real(8), allocatable  :: x_seq(:), y_seq(:)
     integer            :: n_seq = 0
     
     logical      :: veMode = .false.
+    logical      :: lang_en = .true.
     logical      :: tmp_cmode
     logical      :: ok
     logical      :: have_expression
     integer      :: stat
     character(len=100) :: msg
+    character(5) :: lang
 
     type(rpn_t)  :: mem(0:9) = rpn_t()
     
-    ! Create a stack of size 5
+    ! Create a stack of size 4
     type(stack_t(5)) :: stack
+
+    procedure(command_fun), pointer :: com_ptr
+
+    com_ptr => apply_command
 
     call stack%set_legend(['x:','y:','z:','s:','t:'])
     degrees_mode = .true.
@@ -51,9 +57,16 @@ program hp15c
     call constants%set('two_pi',2*pi)
     call constants%set('pi_over_2',pi/2)
 
-    ! Decimal places
-    call set_places(dec_places)
-        
+    ! Try to read the LANG environment variable
+    call get_environment_variable('LANG',lang,status=stat)
+    lang_en = stat /= 0
+    if (.not. lang_en) then
+        lang_en = merge(.true.,.false.,lang(1:3) == 'en_')
+    end if
+    lang = merge('POINT','COMMA',lang_en)
+
+    call rpn_s_init(lang)
+
     ! Interrogate argument list
     argc = command_argument_count()
     have_expression = .false.
@@ -81,10 +94,10 @@ program hp15c
         
         ! Break the string up into a linked-list of tokens
         call tokenize(buff(1:argl))
-        if (verbosity > 0) call print_ll(tokens)
+        if (verbosity > 0) call tokens%print
         
         ! Interpret each token as a command and appky it
-        ok = tokens%iterate(apply_command)
+        ok = tokens%iterate(com_ptr)
         
         ! Do not print the stack at the end of a sequence -it's confusing
         if (in_sequence /= 2) then
@@ -92,11 +105,12 @@ program hp15c
         end if
         
         ! Tidy
-        call clear_ll(tokens)
+        call tokens%clear
 
         if (.not. ok) stop
         
     end do
+    
     if (.not. have_expression) then
         call stack%print(veMode)
     end if
@@ -108,7 +122,7 @@ program hp15c
         write(6,'(a)',advance='no') ':: '
         read(5,fmt='(a)',iostat=ios,iomsg=msg) buff
         if (ios /= 0) then
-            write(6,'(/a)') 'Command:['//buff(1:blen)//']'//'; '//msg
+            write(6,'(/a)') 'Command:['//trim(buff)//']'//'; '//msg
             cycle all
         end if
         buff = trim(adjustl(buff))
@@ -117,7 +131,7 @@ program hp15c
 
         ! Tokenize input string
         call tokenize(buff(1:blen))
-        ok = tokens%iterate(apply_command)
+        ok = tokens%iterate(com_ptr)
         if (.not. ok) exit all
         
         if (in_sequence == 1) then
@@ -129,7 +143,7 @@ program hp15c
         end if
     end do all
 
-    call clear_ll(tokens)
+    call tokens%clear
     stop
 
 contains
@@ -139,7 +153,7 @@ contains
     integer                       :: start, end
     character(len=:), allocatable :: command
     
-    call clear_ll(tokens)
+    call tokens%clear
     if (len_trim(com) == 0) then
         return
     end if
@@ -149,7 +163,7 @@ contains
     end = index(command,' ')
     end = merge(len(command),end-1,end==0)
     do
-        call append(tokens,command(start:end))
+        call tokens%append(command(start:end))
         if (end == len(command)) exit
         start = end + nsp(command(end+1:))
         end = index(command(start:),' ') - 1
@@ -177,12 +191,12 @@ contains
     write(6,'(a)')  '  Actions: 1/ -- R r ? > < split drop'
     write(6,'(a)')  '    Stats: { x1 x2 ... } { x1,y1 x2,y2 ... }'
     write(6,'(a)')  '           n ux sx mx lqx uqx uy sy my lqy uqy a b cov corr'
-    write(6,'(a/)') '    Quits: q ='
+    write(6,'(a/)') '    Quits: q'
     write(6,'(a/)') '-------------------------------------------------------------------------------'
     write(6,'(a)')  'Examples'
     write(6,'(a)')  '--------'
     write(6,'(4x,a)')  'hp "fix2 18 2 - 8 2 / * ="                    -> 64.00'
-    write(6,'(4x,a)')  'hp "2 -- complex sqrt ="                      -> (0.00000,-1.414214)'
+    write(6,'(4x,a)')  'hp "2 -- complex sqrt ="                      -> (0.000000,-1.414214)'
     write(6,'(4x,a/)') 'hp -c "radians (1,pi_over_2)p ^ * degrees ="  -> (1.000000,180.000000) p'
 
   end subroutine help
@@ -193,11 +207,12 @@ contains
     character(*), intent(in) :: command
     logical, intent(out)     :: ok
 
-    real(real64)                 :: r, im
+    real(8)                 :: r, im
     complex(8)              :: u, z
-    real(real64), allocatable    :: tmp_seq(:)
+    real(8), allocatable    :: tmp_seq(:)
     type(rpn_t)             :: us, zs
     integer                 :: m, idx
+    integer, parameter      :: mem_block_size = 10
     
     ok = .true.
     if (len_trim(command) == 0) then
@@ -232,25 +247,24 @@ contains
             end if
             ! Initial allocation
             if (n_seq == 0 .and. .not. allocated(x_seq)) then
-                allocate(x_seq(10))
+                allocate(x_seq(mem_block_size))
                 if (.not. seq_is_x) then
-                    allocate(y_seq(10))
+                    allocate(y_seq(mem_block_size))
                 end if
             end if
             
-            if (n_seq < size(x_seq)) then
-                n_seq = n_seq + 1
-            else
+            if (n_seq == size(x_seq)) then
                 ! Expand array
-                allocate(tmp_seq(n_seq + 10))
+                allocate(tmp_seq(n_seq + mem_block_size))
                 tmp_seq(1:n_seq) = x_seq
                 call move_alloc(tmp_seq, x_seq)
                 if (.not. seq_is_x) then
-                    allocate(tmp_seq(n_seq + 10))
+                    allocate(tmp_seq(n_seq + mem_block_size))
                     tmp_seq(1:n_seq) = y_seq
                     call move_alloc(tmp_seq, y_seq)
                end if
             end if
+            n_seq = n_seq + 1
             x_seq(n_seq) = r
             if (.not. seq_is_x) then
                 y_seq(n_seq) = im
@@ -364,7 +378,8 @@ contains
     case('split')
         if (.not. complex_mode) then
             zs = stack%pop()
-            x = zs%get_value()
+            z = zs%get_value()
+            x = z%re
             if (x > 0) then
                 r = floor(x)
             else
@@ -378,7 +393,8 @@ contains
     case('int')
         if (.not. complex_mode) then
             zs = stack%peek(1)
-            x = zs%get_value()
+            z = zs%get_value()
+            x = z%re
             if (x > 0) then
                 r = floor(x)
             else
@@ -391,9 +407,10 @@ contains
     case('nint')
         if (.not. complex_mode) then
             zs = stack%peek(1)
-            x = zs%get_value()
-            r = nint(x)
-            if (mod(r,2.0d0) == 1) then
+            z = zs%get_value()
+            x = z%re
+            r = nint(x) ! Nearest integer, round up
+            if (mod(abs(r),2.0d0) == 1) then
                 r = r - 1
             end if
             call zs%set_value(cmplx(r,0,8))
@@ -403,7 +420,8 @@ contains
     case('rem')
         if (.not. complex_mode) then
             zs = stack%peek(1)
-            x = zs%get_value()
+            z = zs%get_value()
+            x = z%re
             if (x > 0) then
                 r = floor(x)
             else
@@ -512,6 +530,34 @@ contains
     case('gamma')
         call invoke_unary(gamma_fr)
 
+    case('W')
+        ! Can be two results so need to do something special have_expression
+        block
+            real(8), allocatable :: r(:)
+            complex :: cv
+            if (.not. complex_mode) then
+                zs = stack%peek(1)
+                cv = zs%get_value()
+                if (abs(cv%re + exp(-1.0d0)) < 1.0d-8) then
+                    call zs%set_value(cmplx(-1.0d0,0,8))
+                    call stack%set(zs,1)
+                else if (abs(cv%re) < 1.0d-9) then
+                    call zs%set_value(cmplx(0.0d0,0,8))
+                    call stack%set(zs,1)
+                else if (cv%re > -exp(-1.0d0)) then
+                    r = w_fr(zs)
+                    call zs%set_value(cmplx(r(1),0,8))
+                    call stack%set(zs,1)
+                    if (size(r) == 2) then
+                        call zs%set_value(cmplx(r(2),0,8))
+                        call stack%set(zs,2)
+                    end if
+                else
+                    write(*,'(a)') '***Error: argument out of range, must be > -1/e'
+                end if
+            end if
+        end block
+
     case('!')
         zs = stack%peek(1)
         if (zs%is_positive_real()) then
@@ -616,8 +662,10 @@ contains
         ! Process constants first
         block
             integer :: lc,split_idx,end_idx
+            logical :: is_integer
             character(len=:), allocatable :: re_comp, im_comp
             lc = len_trim(command)
+            is_integer = (index(command,'.') == 0)
             if (complex_mode) then
                 if (command(1:1) == '(') then
                     split_idx = index(command,',')
@@ -669,8 +717,8 @@ contains
     end subroutine apply_command
 
     subroutine calculate_stats
-        real(real64) :: a, b, c, sxy
-        real(real64) :: s(5,2)
+        real(8) :: a, b, c, sxy
+        real(8) :: s(5,2)
 
         call summary_stats(x_seq(1:n_seq),s(1,1),s(2,1),s(3,1),s(4,1),s(5,1))
         call stats%set('n',real(n_seq,8))
@@ -706,7 +754,7 @@ contains
             call stats%set('corr',c)
             call stats%set('cov',sxy)
             write(6,'(/a)') 'Regression:  y = ax + b'
-            call print_value('   gradient a      -> ',a)
+            call print_value('   gradient a      ->',a)
             call print_value('  intercept b      -> ',b)
             call print_value(' covariance cov    -> ',sxy)
             call print_value('correlation corr   -> ',c)
@@ -716,9 +764,9 @@ contains
     end subroutine calculate_stats
     
     subroutine calculate_regression(mean_x, mean_y, a, b, c, sxy)
-        real(real64), intent(in) :: mean_x, mean_y
-        real(real64), intent(out) :: a, b, c, sxy
-        real(real64) :: sxx, syy
+        real(8), intent(in) :: mean_x, mean_y
+        real(8), intent(out) :: a, b, c, sxy
+        real(8) :: sxx, syy
         sxy = sum(x_seq(1:n_seq)*y_seq(1:n_seq))/n_seq - mean_x*mean_y
         sxx = sum(x_seq(1:n_seq)*x_seq(1:n_seq))/n_seq - mean_x**2
         syy = sum(y_seq(1:n_seq)*y_seq(1:n_seq))/n_seq - mean_y**2
@@ -729,8 +777,8 @@ contains
     
     subroutine print_value(name, x, y)
         character(len=*), intent(in)  :: name
-        real(real64), intent(in)           :: x
-        real(real64), intent(in), optional :: y
+        real(8), intent(in)           :: x
+        real(8), intent(in), optional :: y
         character(len=:), allocatable :: fmt_x, fmt_y
         call to_string(x, fmt_x)
         if (present(y)) then
@@ -741,10 +789,10 @@ contains
     end subroutine print_value
 
     subroutine summary_stats(a, mean, median, stddev, lower_q, upper_q)
-        real(real64), intent(in)  :: a(:)
-        real(real64), intent(out) :: mean, median, stddev, lower_q, upper_q
-        real(real64) :: b(size(a))
-        real(real64) :: s, s2
+        real(8), intent(in)  :: a(:)
+        real(8), intent(out) :: mean, median, stddev, lower_q, upper_q
+        real(8) :: b(size(a))
+        real(8) :: s, s2
         integer :: m, n
         n = size(a)
         b = a
@@ -768,9 +816,9 @@ contains
     end subroutine summary_stats
     
     function calc_median(a, mid) result(r)
-        real(real64), intent(in)  :: a(:)
+        real(8), intent(in)  :: a(:)
         integer, intent(out), optional :: mid
-        real(real64) :: r
+        real(8) :: r
         integer :: m, n
         n = size(a)
         m = n/2
@@ -787,8 +835,8 @@ contains
         
     ! 'a' won't be very big so a simple n**2 algorithm will do
     subroutine sort(a)
-        real(real64), intent(inout) :: a(:)
-        real(real64) :: b(size(a))
+        real(8), intent(inout) :: a(:)
+        real(8) :: b(size(a))
         integer :: i, j(size(a))
         logical :: mask(size(a))
         mask = .true.
@@ -888,17 +936,18 @@ contains
         end if
     end subroutine invoke_unary
 
-   integer function nsp(command)
-     implicit none
-     character(*), intent(in) :: command
-     integer :: i
-     do i=1,len(command)
-        if (command(i:i) /= ' ') then
-           nsp = i
-           return
-        end if
-     end do
-     nsp = 0
-   end function nsp
+    integer function nsp(command)
+        implicit none
+        character(*), intent(in) :: command
+        integer :: i
+        do i=1,len(command)
+            if (command(i:i) /= ' ') then
+            nsp = i
+            return
+            end if
+        end do
+        nsp = 0
+    end function nsp
+
 
 end program hp15c

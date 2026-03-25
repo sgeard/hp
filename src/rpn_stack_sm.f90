@@ -1,5 +1,8 @@
 ! Implementation code for stack
 submodule (rpn_stack) stack_sm
+    use numerical
+    use AVD, T1=>avd_d1
+
     use iso_fortran_env, only: output_unit
     implicit none
 
@@ -27,7 +30,7 @@ contains
                 write(output_unit,'(dt)') stk%sdata(i)
             end do
         else
-            write(output_unit,fmt='(dt)') stk%sdata(1)
+            write(6,fmt='(dt)') stk%sdata(1)
         end if
     end subroutine print_stackt
     
@@ -45,9 +48,9 @@ contains
     
     module subroutine push_r_stackt(stk, x)
         class(stack_t(*)), intent(inout) :: stk
-        real(real64) :: x
+        real(8) :: x
         type(rpn_t) :: z
-        z = rpn_t(cmplx(x,0.0d0))
+        z = rpn_t(cmplx(x,0.0d0,8))
         call stk%push_stackt(z)
     end subroutine push_r_stackt
     
@@ -155,27 +158,27 @@ contains
         character(*), intent(inout) :: iomsg
         complex(8) :: z
         character(len=:), allocatable :: str_re, str_im
+        iostat = 0
+        !iomsg = ""
         z = se%zdata
         if (complex_mode) then
             call to_string(z%re,str_re)
             call to_string(z%im,str_im)
             if (se%is_cartesian()) then
-                write(unit,'(a)',iostat=iostat) '('//str_re//','//str_im//')'
+                write(output_unit,'(a)') '('//str_re//','//str_im//')'
             else
-                write(unit,'(a)',iostat=iostat) '('//str_re//','//str_im//') p'
+                write(output_unit,'(a)') '('//str_re//','//str_im//') p'
             end if
         else
             call to_string(z%re,str_re)
-            write(unit,'(a)',iostat=iostat) str_re
+            write(output_unit,'(a)') str_re
         end if
-        if (iostat /= 0) then
-            iomsg = 'output error'
-        end if
+
     end subroutine write_rpns
     
     ! Convert real to string inserting a leading 0 if necessary
     module subroutine to_string(x, str)
-        real(real64), intent(in) :: x
+        real(8), intent(in) :: x
         character(len=:), allocatable, intent(out) :: str
         character(len=32) :: s
         s = ' '
@@ -199,7 +202,7 @@ contains
     module function is_integer_rpns(this) result(r)
         class(rpn_t), intent(in) :: this
         logical :: r
-        real(real64) :: x
+        real(8) :: x
         x = this%zdata%re
         r = (abs(nint(x)-x) < eps .and. abs(this%zdata%im) < eps)
     end function is_integer_rpns
@@ -274,7 +277,7 @@ contains
         if (b%is_cartesian()) then
             r%zdata = r%zdata + b%zdata
         else
-            s = to_cartesian(a)
+            s = to_cartesian(b)
             r%zdata = r%zdata + s%zdata
         end if
         if (.not. is_cart) then
@@ -297,7 +300,7 @@ contains
         if (b%is_cartesian()) then
             r%zdata = r%zdata - b%zdata
         else
-            s = to_cartesian(a)
+            s = to_cartesian(b)
             r%zdata = r%zdata - s%zdata
         end if
         if (.not. is_cart) then
@@ -320,7 +323,7 @@ contains
         if (b%is_cartesian()) then
             r%zdata = r%zdata * b%zdata
         else
-            s = to_cartesian(a)
+            s = to_cartesian(b)
             r%zdata = r%zdata * s%zdata
         end if
         if (.not. is_cart) then
@@ -343,7 +346,7 @@ contains
         if (b%is_cartesian()) then
             r%zdata = r%zdata / b%zdata
         else
-            s = to_cartesian(a)
+            s = to_cartesian(b)
             r%zdata = r%zdata / s%zdata
         end if
         if (.not. is_cart) then
@@ -353,7 +356,7 @@ contains
     
     module function power_rpns(this, x) result(r)
         class(rpn_t), intent(in) :: this
-        real(real64), intent(in) :: x
+        real(8), intent(in) :: x
         type(rpn_t) :: r
         type(rpn_t) :: z
         logical     :: is_cart
@@ -372,8 +375,8 @@ contains
     module function to_cartesian_rpns(stk_z) result(r)
         type(rpn_t), intent(in) :: stk_z
         type(rpn_t) :: r
-        real(real64) :: s
-        real(real64) :: theta
+        real(8) :: s
+        real(8) :: theta
         if (.not. stk_z%is_cartesian()) then
             s = stk_z%zdata%re
             theta = stk_z%zdata%im * merge(to_rad,1.0d0,degrees_mode)
@@ -397,8 +400,8 @@ contains
     contains
         complex(8) function to_polar_internal(z)
             complex(8), intent(in) :: z
-            real(real64) :: r
-            real(real64) :: theta
+            real(8) :: r
+            real(8) :: theta
             r = sqrt(real(z * conjg(z),8))
             theta = atan2(aimag(z), real(z))
             to_polar_internal%re = r
@@ -438,7 +441,7 @@ contains
         type(rpn_t), intent(in) :: a
         type(rpn_t), intent(in) :: b
         type(rpn_t) :: r
-        r = a * b / rpn_t(cmplx(100.0d0,0.0d0))
+        r = a * b / rpn_t(cmplx(100.0d0,0.0d0,8))
     end function percent_fr
 
     module function power_fr(a, b) result(r)
@@ -490,13 +493,13 @@ contains
         type(rpn_t) :: r
         type(rpn_t) :: s
         s = a * conj_fr(a)
-        r = rpn_t(cmplx(sqrt(real(s%zdata%re)),0.0d0,8))
+        r = rpn_t(cmplx(sqrt(real(s%zdata%re,8)),0.0d0,8))
     end function len_fr
     
     module function swap_real_imaginary_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        real(real64) :: x
+        real(8) :: x
         r = a
         x = r%zdata%re
         r%zdata%re = r%zdata%im
@@ -506,7 +509,7 @@ contains
     module function chs_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(cmplx(-a%zdata%re,-a%zdata%im))
+        r = rpn_t(cmplx(-a%zdata%re,-a%zdata%im,8))
     end function chs_fr
     
     module function sine_fr(a) result(r)
@@ -518,7 +521,7 @@ contains
     module function cosine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(cos(a%zdata%re * merge(to_rad,1.0d0,degrees_mode)))
+        r = rpn_t(cos(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
     end function cosine_fr
 
     module function tangent_fr(a) result(r)
@@ -623,6 +626,130 @@ contains
         r = rpn_t(gamma(a%zdata%re))
     end function gamma_fr
 
+    module function w_fr(a) result(res)
+        type(rpn_t), intent(in) :: a
+        !type(rpn_t) :: r
+        real(8), allocatable :: res(:)
+        ! Invoke NR to calculate Lambert-W
+        res = W(a%zdata%re)
+    end function w_fr
+
+    module function W(u) result(res)
+        real(8), intent(in) :: u
+        real(8), allocatable :: res(:)
+        procedure(value_fun_g), pointer :: wf
+        procedure(value_fun_g), pointer :: wf2
+        type(res_info_t)    :: r
+        real(8), parameter  :: e = exp(1.0d0)
+        real(8) :: x0, xc, s
+        integer :: n_solutions
+        real(8) :: solns(2)
+
+        n_solutions = 1
+        if (u < 0) then
+            ! f(x) = e^x + x/u
+            ! So in this case we're intersection the line y = x/|u| with the exponential curve y = e^x
+            !
+            ! The closest point on the line to the curve occurs at xc = ln(-ln|u|) - ln(|u|)
+            !
+            ! So:
+            !     e^xc > xc/|u|  => 0 solutions
+            !     e^xc = xc/|u|  => 1 solutions
+            !     e^xc < xc/|u|  => 2 solutions
+            !
+            wf2 => W_minus2
+            if (u > -1.0d0/exp(1.0d0)) then
+                xc = log(-log(-u)) - log(-u)
+                if (exp(xc) > -xc/u) then
+                    n_solutions = 0
+                else if (exp(xc) == -xc/u) then
+                    n_solutions = 1
+                else
+                    n_solutions = 2
+                end if
+                x0 = xc
+            else
+                x0 = 0.0d0
+            end if
+            
+        else
+            !wf => W_plus
+            wf2 => W_plus2
+            x0 = 0.0d0
+        end if
+        if (n_solutions == 0) then
+            write(*,'(a)') '****Error: no solution'
+            res = [0.0d0]
+            return
+        end if
+       
+        !write(*,'(a,i3)') 'n_solutions = ',n_solutions
+        
+!         module subroutine modified_newton_raphson_ncl(f, rdf, x0, eps, ilimit, res)
+!             procedure(value_fun_g)           :: f
+!             procedure(rvalue_fun), pointer  :: rdf
+!             real(8), intent(in)             :: x0
+!             real(8), intent(in)             :: eps
+!             integer, intent(in), optional   :: ilimit
+!             type(res_info_t), intent(out)   :: res
+!         end subroutine modified_newton_raphson_ncl
+
+        call modified_newton_raphson(wf2, x0, 1.0d-10, 32, r)
+        if (.not. r%solved) then
+            write(*,'(a)') '****Error: no solution'
+            res = [0.0d0]
+            return
+        end if
+        if (u > 0) then
+            solns(1) = exp(r%solution)
+        else
+            solns(1) = -r%solution
+        end if
+        if (n_solutions == 2) then
+            wf2 => W_minus2_s
+            s = r%solution
+            !write(*,'(a,f0.8,3x,2(a,f0.8))') 'u = ',u,'; x0 = ',x0,';  s = ',s
+            call modified_newton_raphson(wf2, x0, 1.0d-10, 32, r)
+            if (.not. r%solved) then
+                write(*,'(a)') '****Error: no solution'
+                res = 0.0d0
+                return
+            end if
+            solns(2) = -r%solution
+        end if
+        if (n_solutions == 1) then
+            res = [solns(1)]
+        else
+            res = solns
+        end if
+        !write(*,*) solns(1:n_solutions)
+        return
+
+    contains
+
+        function W_plus2(x, err) result(res)
+            class(T1), intent(in) :: x
+            integer, optional, intent(out) :: err
+            class(T1), allocatable             :: res
+            allocate(res, source = (exp(x) + x - log(u)))
+        end function W_plus2
+
+        function W_minus2(x, err) result(res)
+            class(T1), intent(in) :: x
+            integer, optional, intent(out) :: err
+            class(T1), allocatable             :: res
+            allocate(res, source = exp(x) + x/u)
+        end function W_minus2
+
+        function W_minus2_s(x, err) result(res)
+            class(T1), intent(in) :: x
+            integer, optional, intent(out) :: err
+            class(T1), allocatable             :: res
+            allocate(res, source = (exp(x) + x/u)/(x-s))
+        end function W_minus2_s
+
+    end function W
+        
     module function fact_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
@@ -649,13 +776,13 @@ contains
         type(rpn_t), intent(in) :: a
         type(rpn_t), intent(in) :: b
         type(rpn_t) :: r
-        real(real64)     :: bc
+        real(8)     :: bc
         integer     :: i
         type(rpn_t) :: base
         complex(8)  :: z
         logical     :: a_is_cart
-        real(real64)     :: s, delta_theta, theta0, phi
-        real(real64), parameter :: two_pi = 8*atan(1.0d0)
+        real(8)     :: s, delta_theta, theta0, phi
+        real(8), parameter :: two_pi = 8*atan(1.0d0)
        
         bc = real(b%get_value())
         r = power_fr(a, rpn_t(1.0d0/bc))
@@ -675,10 +802,10 @@ contains
             do i=1, nroots
                 phi = theta0 + (i-1)*delta_theta
                 if (a_is_cart) then
-                    roots(i) = rpn_t(cmplx(round(s*cos(phi)),round(s*sin(phi))),a_is_cart)
+                    roots(i) = rpn_t(cmplx(round(s*cos(phi)),round(s*sin(phi)),8),a_is_cart)
                 else
                     if (degrees_mode) phi = phi*to_deg
-                    roots(i) = rpn_t(cmplx(s,round(phi)),a_is_cart)
+                    roots(i) = rpn_t(cmplx(s,round(phi),8),a_is_cart)
                 end if
             end do
             r = roots(1)
@@ -723,18 +850,24 @@ contains
         type(rpn_t), intent(in) :: a
         type(rpn_t), intent(in) :: b
         type(rpn_t) :: r
-        r%zdata = atan2(real(a%zdata),real(b%zdata)) * merge(to_deg,1.0d0,degrees_mode)
+        r%zdata = atan2(real(a%zdata,8),real(b%zdata,8)) * merge(to_deg,1.0d0,degrees_mode)
     end function atangent2_fr
     
     module function round(x) result(r)
-        real(real64), intent(in) :: x
-        real(real64) :: r
+        real(8), intent(in) :: x
+        real(8) :: r
         if (abs(x) < eps) then
             r = 0
         else
             r = x
         end if
     end function round
+        
+    module subroutine init(lang)
+        character(5), intent(in), optional :: lang
+        if (present(lang)) decimal = lang
+        call set_places(dec_places)
+    end subroutine init
 
     module subroutine set_places(n)
         integer, intent(in) :: n
