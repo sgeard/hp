@@ -19,3 +19,6 @@ copyright = "Copyright 2023, sgeard"
    implicit-external = false
    source-form = "free"
 
+[dependencies]
+avd = { path = "../../autodiff-git" }
+
