@@ -184,6 +184,7 @@ contains
     write(6,'(a)')  'Constants: pi e g G c two_pi pi_over_2'
     write(6,'(a)')  'Functions: sin cos tan asin acos atan sinh cosh tanh log2 log lg len sq sqrt cb cbrt'
     write(6,'(a)')  '           alog2 alog alog10 gamma ncr npr rem int nint'
+    write(6,'(a)')  '           W (LambertW function) if -1/e < x < 0 W0 is placed in the x and W-1 in y'
     write(6,'(a)')  ' Controls: fix[0-9] clx cl cla '
     write(6,'(a)')  '    Modes: real complex verbose terse degrees radians'
     write(6,'(a)')  ' Memories: n=0...9  st<n> sw<n> rc<n> cl<n> m<n>+ m<n>- m<n>* m<n>/ msh'
