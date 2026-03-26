@@ -22,8 +22,15 @@ endif
 
 endif
 
-SRC := $(wildcard src/*.f90)
-OBJ := $(SRC:src/%.f90=$(BUILD_DIR)/%.o)
+SRC  := $(wildcard src/*.f90)
+OBJ  := $(SRC:src/%.f90=$(BUILD_DIR)/%.o)
+ODIR := $(BUILD_DIR)
+
+# --- Module dependencies (auto-generated) ---
+depends.mk: fortran_deps.tcl $(SRC) app/main.f90
+	tclsh9.1 $< src $@ app/main.f90
+
+-include depends.mk
 
 EXE := $(BUILD_DIR)/hp
 
