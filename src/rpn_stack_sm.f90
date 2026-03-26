@@ -731,6 +731,7 @@ contains
             class(T1), intent(in) :: x
             integer, optional, intent(out) :: err
             class(T1), allocatable             :: res
+            if (present(err)) err = 0
             allocate(res, source = (exp(x) + x - log(u)))
         end function W_plus2
 
@@ -738,6 +739,7 @@ contains
             class(T1), intent(in) :: x
             integer, optional, intent(out) :: err
             class(T1), allocatable             :: res
+            if (present(err)) err = 0
             allocate(res, source = exp(x) + x/u)
         end function W_minus2
 
@@ -745,6 +747,7 @@ contains
             class(T1), intent(in) :: x
             integer, optional, intent(out) :: err
             class(T1), allocatable             :: res
+            if (present(err)) err = 0
             allocate(res, source = (exp(x) + x/u)/(x-s))
         end function W_minus2_s
 

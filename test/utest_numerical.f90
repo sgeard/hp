@@ -16,7 +16,6 @@ program utest_numerical
 
     ! Newton-Raphson: 1 solution
     nsolns_1: block
-        type(res_info_t), allocatable :: solns(:)
         write(*, '(a)') 'N-R with one solution: '
         f => s1_g
         x0 = 0.0d0
@@ -119,6 +118,7 @@ contains
         class(T1), allocatable         :: r
         class(T1), intent(in)          :: x
         integer, optional, intent(out) :: err
+        if (present(err)) err = 0
         allocate(r, source = 3**x - 2.0d0)
     end function s1_g
     
@@ -128,6 +128,7 @@ contains
         class(T1), allocatable         :: r
         class(T1), intent(in)          :: x
         integer, optional, intent(out) :: err
+        if (present(err)) err = 0
         allocate(r, source = (3**x - 3.0d0 + x**2))
     end function s2_g
 
@@ -135,6 +136,7 @@ contains
         class(T1), allocatable         :: r
         class(T1), intent(in)          :: x
         integer, optional, intent(out) :: err
+        if (present(err)) err = 0
         allocate(r, source = (3**x - 3.0d0 + x**2)/(x-ps1))
     end function s2_p_g
     
@@ -144,6 +146,7 @@ contains
         class(T1), allocatable         :: r
         class(T1), intent(in)          :: x
         integer, optional, intent(out) :: err
+        if (present(err)) err = 0
         allocate(r, source = 9**x - x**6)
     end function s3_g
 
@@ -151,6 +154,7 @@ contains
         class(T1), allocatable         :: r
         class(T1), intent(in) :: x
         integer, optional, intent(out) :: err
+        if (present(err)) err = 0
         allocate(r, source = (9**x - x**6)/(x-ps1))
     end function s3_2p_g
 
@@ -158,6 +162,7 @@ contains
         class(T1), allocatable         :: r
         class(T1), intent(in) :: x
         integer, optional, intent(out) :: err
+        if (present(err)) err = 0
         allocate(r, source = (9**x - x**6)/((x-ps1)*(x-ps2)))
     end function s3_3p_g
 
