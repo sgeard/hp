@@ -159,19 +159,18 @@ contains
         complex(8) :: z
         character(len=:), allocatable :: str_re, str_im
         iostat = 0
-        !iomsg = ""
         z = se%zdata
         if (complex_mode) then
             call to_string(z%re,str_re)
             call to_string(z%im,str_im)
             if (se%is_cartesian()) then
-                write(output_unit,'(a)') '('//str_re//','//str_im//')'
+                write(unit,'(a)', iostat=iostat, iomsg=iomsg) '('//str_re//','//str_im//')'
             else
-                write(output_unit,'(a)') '('//str_re//','//str_im//') p'
+                write(unit,'(a)', iostat=iostat, iomsg=iomsg) '('//str_re//','//str_im//') p'
             end if
         else
             call to_string(z%re,str_re)
-            write(output_unit,'(a)') str_re
+            write(unit,'(a)', iostat=iostat, iomsg=iomsg) str_re
         end if
 
     end subroutine write_rpns

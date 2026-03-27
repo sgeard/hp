@@ -193,8 +193,7 @@ contains
         integer, intent(out)        :: iostat
         character(*), intent(inout) :: iomsg
         iostat = 0
-        !iomsg = ""
-        write(6,'(a)', iostat=iostat, iomsg=iomsg) trim(adjustl(key%k))
+        write(unit,'(a)', iostat=iostat, iomsg=iomsg) trim(adjustl(key%k))
     end subroutine write_key_t
 
     subroutine write_value_t(value, unit, iotype, v_list, iostat, iomsg)
@@ -205,7 +204,6 @@ contains
         integer, intent(out)        :: iostat
         character(*), intent(inout) :: iomsg
         iostat = 0
-        !iomsg = ""
-        write(6,'(f0.6)', iostat=iostat, iomsg=iomsg) value%v
+        write(unit,'(f0.6)', iostat=iostat, iomsg=iomsg) value%v
     end subroutine write_value_t
 end module amap

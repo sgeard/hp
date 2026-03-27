@@ -1,3 +1,4 @@
 build/*
 docs/fpm-ford
 docs/doxygen_out
+foptions.mk

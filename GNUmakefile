@@ -1,30 +1,19 @@
 .PHONY: veryclean clean force export help test run
 
-F := ifx
-BUILD_DIR := build
+F_EXTRA_GF  := --check=all -frealloc-lhs -Wno-unused-dummy-argument -Wno-unused-value
+F_LOPTS_GF  := -Wl,-z,execstack
+F_LOPTS_IFX := -Wl,-z,noexecstack
 
-HP_LIB := $(BUILD_DIR)/libhp.a
+foptions.mk: generate_fopts.tcl
+	tclsh9.1 $<
 
-# Untested NAG support
-ifeq ($(F),nagfor)
-F_OPTS := -fpic -I $(BUILD_DIR)
+include foptions.mk
 
-else
-F_OPTS := -fpic -module $(BUILD_DIR)
-
-ifdef debug
-ifeq ($(F),ifx)
-F_OPTS += -g
-else
-F_OPTS += -ggdb
-endif
-endif
-
-endif
+BUILD_DIR := $(ODIR)
+HP_LIB    := $(BUILD_DIR)/libhp.a
 
 SRC  := $(wildcard src/*.f90)
 OBJ  := $(SRC:src/%.f90=$(BUILD_DIR)/%.o)
-ODIR := $(BUILD_DIR)
 
 # --- Module dependencies (auto-generated) ---
 depends.mk: fortran_deps.tcl $(SRC) app/main.f90
@@ -34,8 +23,10 @@ depends.mk: fortran_deps.tcl $(SRC) app/main.f90
 
 EXE := $(BUILD_DIR)/hp
 
+all: foptions.mk $(EXE)
+
 $(EXE): $(BUILD_DIR) app/main.f90 $(HP_LIB)
-	$(F) -o $@ app/main.f90 $(HP_LIB) $(F_OPTS)
+	$(F) -o $@ app/main.f90 $(HP_LIB) $(F_OPTS) $(F_LOPTS)
 
 $(HP_LIB): $(BUILD_DIR) $(OBJ)
 	ar crv $@ $(OBJ)

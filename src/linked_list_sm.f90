@@ -8,6 +8,7 @@ contains
         procedure(command_fun)              :: f
         logical :: r
         type(llist_node), pointer :: token
+        r = .true.
         token => this%begin
         do
             if (.not. associated(token)) exit

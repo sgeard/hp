@@ -535,7 +535,7 @@ contains
         ! Can be two results so need to do something special have_expression
         block
             real(8), allocatable :: r(:)
-            complex :: cv
+            complex(8) :: cv
             if (.not. complex_mode) then
                 zs = stack%peek(1)
                 cv = zs%get_value()
