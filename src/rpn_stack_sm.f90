@@ -755,11 +755,13 @@ contains
     module function fact_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        if (a%zdata%re == 0) then
-            r = rpn_t(1)
-        else
-            r = rpn_t(a%zdata%re*gamma(a%zdata%re))
-        end if
+        associate (v => a%zdata%re)
+            if (v == 0) then
+                r = rpn_t(1)
+            else
+                r = rpn_t(gamma(v+1))
+            end if
+        end associate
     end function fact_fr
 
     module function ncr_fr(a, b) result(r)
