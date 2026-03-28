@@ -35,7 +35,8 @@ Operators: + - * / ^ ^/x ^x ^2 ^/2 ^3 ^/3 ^*2 ^*10 || ! %
 Constants: pi e g G c two_pi pi_over_2
 Functions: sin cos tan asin acos atan sinh cosh tanh log2 log lg len sq sqrt cb cbrt
            alog2 alog alog10 gamma ncr npr rem int nint
- Controls: fix[0-9] clx cl cla 
+           W (LambertW function) if -1/e < x < 0 W0 is placed in the x and W-1 in y
+  Controls: fix[0-9] clx cl cla 
     Modes: real complex verbose terse degrees radians
  Memories: n=0...9  st<n> sw<n> rc<n> cl<n> m<n>+ m<n>- m<n>* m<n>/ msh
   Complex: ri _ || to_pol to_cart
