@@ -50,26 +50,65 @@ module numerical
         real(8) :: solution = 0.0d0
     end type res_info_t
 
+    type sframe_t
+        real(8) :: a = 0.0d0
+        real(8) :: b = 0.0d0
+    contains
+        procedure :: get_mid_point => get_mid_point_sframe_t
+        procedure :: print => print_sframe_t
+        procedure :: to_str => to_str_sframe_t
+    end type sframe_t
+    
+    interface
+        module pure function get_mid_point_sframe_t(this) result(r)
+            class(sframe_t), intent(in) :: this
+            real(8)                     :: r    
+        end function get_mid_point_sframe_t
+        module subroutine print_sframe_t(this)
+            class(sframe_t), intent(in) :: this  
+        end subroutine print_sframe_t
+        module pure function to_str_sframe_t(this) result(r)
+            class(sframe_t), intent(in)   :: this
+            character(len=:), allocatable :: r    
+        end function to_str_sframe_t
+    end interface
+    
     interface newton_raphson
-        module subroutine newton_raphson_ncl(f, x0, eps, ilimit, res)
+        module subroutine newton_raphson_ncl(f, x0, eps, res, ilimit, solns)
             procedure(value_fun_g)          :: f
             real(8), intent(in)             :: x0
             real(8), intent(in)             :: eps
-            integer, optional, intent(in)   :: ilimit
             type(res_info_t), intent(inout) :: res
+            integer, optional, intent(in)   :: ilimit
+            real(8), intent(in), optional   :: solns(:)  ! Solutions already found
         end subroutine newton_raphson_ncl
     end interface
 
     interface modified_newton_raphson
-        module subroutine modified_newton_raphson_ncl(f, x0, eps, ilimit, res)
+        module subroutine modified_newton_raphson_ncl(f, x0, eps, res, ilimit, solns)
             procedure(value_fun_g)          :: f
             real(8), intent(in)             :: x0
             real(8), intent(in)             :: eps
-            integer, intent(in), optional   :: ilimit
             type(res_info_t), intent(out)   :: res
+            integer, intent(in), optional   :: ilimit
+            real(8), intent(in), optional   :: solns(:)  ! Solutions already found
         end subroutine modified_newton_raphson_ncl
     end interface
     
+    interface locate_solution_frame
+        module subroutine locate_solution_frames(f, x0, direction, frames)
+            procedure(value_fun_g)   :: f
+            real(8), intent(in)      :: x0
+            character(*), intent(in) :: direction
+            type(sframe_t), allocatable, intent(out)  :: frames(:)
+        end subroutine locate_solution_frames
+    end interface
+    
+!    interface deflate
+!        module function deflate(f, solns) result(res)
+            
+            
+       
     interface D1
         module function D1_ncl(g, x) result(res)
             procedure(rvalue_fun), pointer    :: g

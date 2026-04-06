@@ -550,13 +550,23 @@ contains
     module function asine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(asin(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+        ! In complex mode do nt convert to degrees
+        if (complex_mode) then
+            r = rpn_t(asin(a%zdata))
+        else
+            r = rpn_t(asin(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+        end if
     end function asine_fr
 
     module function acosine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(acos(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+        ! In complex mode do nt convert to degrees
+        if (complex_mode) then
+            r = rpn_t(acos(a%zdata))
+        else
+            r = rpn_t(acos(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+        end if
     end function acosine_fr
 
     module function atangent_fr(a) result(r)
@@ -693,7 +703,7 @@ contains
 !             type(res_info_t), intent(out)   :: res
 !         end subroutine modified_newton_raphson_ncl
 
-        call modified_newton_raphson(wf2, x0, 1.0d-10, 32, r)
+        call modified_newton_raphson(wf2, x0, 1.0d-10, r, 32)
         if (.not. r%solved) then
             write(*,'(a)') '****Error: no solution'
             res = [0.0d0]
@@ -708,7 +718,7 @@ contains
             wf2 => W_minus2_s
             s = r%solution
             !write(*,'(a,f0.8,3x,2(a,f0.8))') 'u = ',u,'; x0 = ',x0,';  s = ',s
-            call modified_newton_raphson(wf2, x0, 1.0d-10, 32, r)
+            call modified_newton_raphson(wf2, x0, 1.0d-10, r, 32)
             if (.not. r%solved) then
                 write(*,'(a)') '****Error: no solution'
                 res = 0.0d0
