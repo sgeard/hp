@@ -64,10 +64,10 @@ Examples
    ```bash
         git clone https://github.com/sgeard/hp.git
         cd hp
-        fpm test --compiler ifort
-        fpm run --compiler ifort
+        fpm test --compiler ifx
+        fpm run --compiler ifx
         
-        # or using the response file (saves writing --compiler ifort everywhere)
+        # or using the response file (saves writing --compiler ifx everywhere)
         fpm @build
         fpm @test
         fpm @run
