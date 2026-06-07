@@ -4,7 +4,14 @@ module rpn_stack
     use numerical
 
     implicit none
-    
+
+#ifdef NO_PDT
+#   define STACK_SIZE_TYPE stack_t
+    integer, parameter :: STACK_SIZE = 5
+#else
+#   define STACK_SIZE_TYPE stack_t(*)
+#endif
+
     ! Type for the data that's going on to the stack
     type rpn_t
         complex(real64), private :: zdata   = 0
@@ -34,10 +41,17 @@ module rpn_stack
     end type rpn_t
     
     ! Make the stack a parameterized derived type in case we want a different size
+#ifdef NO_PDT
+    type stack_t
+        integer               :: ssize = STACK_SIZE
+        type(rpn_t), private  :: sdata(STACK_SIZE)
+        character(2), private :: legend(STACK_SIZE)
+#else
     type stack_t(ssize)
         integer, len          :: ssize
         type(rpn_t), private  :: sdata(ssize)
         character(2), private :: legend(ssize)
+#endif
         integer, private      :: high_water = 0
     contains
         procedure, private :: push_stackt
@@ -60,55 +74,55 @@ module rpn_stack
     interface
         
         module subroutine set_legend_stackt(stk, legend)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             character(len=2), intent(in)     :: legend(:)
         end subroutine set_legend_stackt
         module function get_size_stackt(stk) result(r)
-            class(stack_t(*)), intent(in) :: stk
+            class(STACK_SIZE_TYPE), intent(in) :: stk
             integer :: r
         end function get_size_stackt
         module subroutine print_stackt(stk, ve_mode)
-            class(stack_t(*)), intent(in) :: stk
+            class(STACK_SIZE_TYPE), intent(in) :: stk
             logical, intent(in)           :: ve_mode
         end subroutine print_stackt
         module subroutine push_stackt(stk, z)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             type(rpn_t) :: z
         end subroutine push_stackt
         module subroutine push_r_stackt(stk, x)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             real(8) :: x
         end subroutine push_r_stackt
         module subroutine push_all_stackt(stk, z, is_cart)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             complex(8), intent(in) :: z
             logical, intent(in), optional :: is_cart
         end subroutine push_all_stackt
         module subroutine set_stackt(stk, z, idx)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             type(rpn_t), intent(in) :: z
             integer, optional, intent(in) :: idx
         end subroutine set_stackt
         module function peek_stackt(stk, idx) result(r)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             integer, intent(in) :: idx 
             type(rpn_t) :: r
         end function peek_stackt
         module function pop_stackt(stk) result(r)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
             type(rpn_t) :: r
         end function pop_stackt
         module subroutine clear_stackt(stk)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
         end subroutine clear_stackt
         module subroutine swap_stackt(stk)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
         end subroutine swap_stackt
         module subroutine rotate_up_stackt(stk)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
         end subroutine rotate_up_stackt
         module subroutine rotate_down_stackt(stk)
-            class(stack_t(*)), intent(inout) :: stk
+            class(STACK_SIZE_TYPE), intent(inout) :: stk
         end subroutine rotate_down_stackt
     end interface
     
@@ -206,7 +220,13 @@ module rpn_stack
             type(rpn_t), intent(in) :: b
             type(rpn_t) :: r
         end function add_fr
-        
+
+        module function hypot_fr(a,b) result(r)
+            type(rpn_t), intent(in) :: a
+            type(rpn_t), intent(in) :: b
+            type(rpn_t) :: r
+        end function hypot_fr
+
         module function subtract_fr(a,b) result(r)
             type(rpn_t), intent(in) :: a
             type(rpn_t), intent(in) :: b

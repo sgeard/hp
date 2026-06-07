@@ -13,10 +13,11 @@ module numerical
 
     abstract interface
     
-        function value_fun_g(v, err)
+        function value_fun_g(v, ctx, err)
             import; implicit none
             class(T1), allocatable         :: value_fun_g
             class(T1), intent(in)          :: v
+            class(*), intent(in), optional :: ctx ! opaque caller context, forwarded by the solver
             integer, optional, intent(out) :: err ! 0 if no error
         end function value_fun_g
     
@@ -74,24 +75,26 @@ module numerical
     end interface
     
     interface newton_raphson
-        module subroutine newton_raphson_ncl(f, x0, eps, res, ilimit, solns)
+        module subroutine newton_raphson_ncl(f, x0, eps, res, ilimit, solns, ctx)
             procedure(value_fun_g)          :: f
             real(8), intent(in)             :: x0
             real(8), intent(in)             :: eps
             type(res_info_t), intent(inout) :: res
             integer, optional, intent(in)   :: ilimit
             real(8), intent(in), optional   :: solns(:)  ! Solutions already found
+            class(*), intent(in), optional  :: ctx       ! forwarded verbatim to f
         end subroutine newton_raphson_ncl
     end interface
 
     interface modified_newton_raphson
-        module subroutine modified_newton_raphson_ncl(f, x0, eps, res, ilimit, solns)
+        module subroutine modified_newton_raphson_ncl(f, x0, eps, res, ilimit, solns, ctx)
             procedure(value_fun_g)          :: f
             real(8), intent(in)             :: x0
             real(8), intent(in)             :: eps
             type(res_info_t), intent(out)   :: res
             integer, intent(in), optional   :: ilimit
             real(8), intent(in), optional   :: solns(:)  ! Solutions already found
+            class(*), intent(in), optional  :: ctx       ! forwarded verbatim to f
         end subroutine modified_newton_raphson_ncl
     end interface
     
@@ -103,11 +106,6 @@ module numerical
             type(sframe_t), allocatable, intent(out)  :: frames(:)
         end subroutine locate_solution_frames
     end interface
-    
-!    interface deflate
-!        module function deflate(f, solns) result(res)
-            
-            
        
     interface D1
         module function D1_ncl(g, x) result(res)

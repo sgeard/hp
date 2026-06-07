@@ -113,13 +113,14 @@ contains
         res = (g(T0(x+2*h))-2*g(T0(x+h))+g(T0(x)))/h**2
     end function D2_ncl
 
-    module subroutine newton_raphson_ncl(f, x0, eps, res, ilimit, solns)
+    module subroutine newton_raphson_ncl(f, x0, eps, res, ilimit, solns, ctx)
         procedure(value_fun_g)          :: f
         real(8), intent(in)             :: x0
         real(8), intent(in)             :: eps
         type(res_info_t), intent(inout) :: res
         integer, optional, intent(in)   :: ilimit
         real(8), intent(in), optional   :: solns(:)  ! Solutions already found
+        class(*), intent(in), optional  :: ctx       ! forwarded verbatim to f
 
         integer  :: max_iterations
         integer  :: counter, i
@@ -136,7 +137,7 @@ contains
         x = x0
         associate (fx => r%v, dfx => r%d1)
             nr: do counter=1,max_iterations
-                r = f(T1(x,1))
+                r = f(T1(x,1), ctx)
                 if (present(solns)) then
                     do i=1,size(solns)
                         r = r / (T1(x,1) - solns(i))
@@ -161,13 +162,14 @@ contains
         
     end subroutine newton_raphson_ncl
 
-    module subroutine modified_newton_raphson_ncl(f, x0, eps, res, ilimit, solns)
+    module subroutine modified_newton_raphson_ncl(f, x0, eps, res, ilimit, solns, ctx)
         procedure(value_fun_g)           :: f
         real(8), intent(in)             :: x0
         real(8), intent(in)             :: eps
         type(res_info_t), intent(out)   :: res
         integer, intent(in), optional   :: ilimit
         real(8), intent(in), optional   :: solns(:)  ! Solutions already found
+        class(*), intent(in), optional  :: ctx       ! forwarded verbatim to f
 
         
         integer  :: max_iterations
@@ -190,7 +192,7 @@ contains
         call avd_init
         x = x0
         nr: do counter=1,max_iterations
-            r = f(T2(x,1,0))
+            r = f(T2(x,1,0), ctx)
             if (present(solns)) then
                 do i=1,size(solns)
                     r = r / (T2(x,1,0) - solns(i))

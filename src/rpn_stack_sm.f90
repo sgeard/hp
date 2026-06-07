@@ -6,22 +6,28 @@ submodule (rpn_stack) stack_sm
     use iso_fortran_env, only: output_unit
     implicit none
 
+#ifdef NO_PDT
+#   define STACK_SIZE_TYPE stack_t
+#else
+#   define STACK_SIZE_TYPE stack_t(*)
+#endif
+
 contains
 
     module subroutine set_legend_stackt(stk, legend)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         character(len=2), intent(in)     :: legend(:)
         stk%legend = legend
     end subroutine set_legend_stackt
 
     module function get_size_stackt(stk) result(r)
-        class(stack_t(*)), intent(in) :: stk
+        class(STACK_SIZE_TYPE), intent(in) :: stk
         integer :: r
         r = stk%high_water
     end function get_size_stackt
 
     module subroutine print_stackt(stk, ve_mode)
-        class(stack_t(*)), intent(in) :: stk
+        class(STACK_SIZE_TYPE), intent(in) :: stk
         logical, intent(in)           :: ve_mode
         integer :: i
         if (ve_mode) then
@@ -35,7 +41,7 @@ contains
     end subroutine print_stackt
     
     module subroutine push_stackt(stk, z)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
         integer :: i
         do i=stk%ssize,2,-1
@@ -47,7 +53,7 @@ contains
     end subroutine push_stackt
     
     module subroutine push_r_stackt(stk, x)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         real(8) :: x
         type(rpn_t) :: z
         z = rpn_t(cmplx(x,0.0d0,8))
@@ -55,7 +61,7 @@ contains
     end subroutine push_r_stackt
     
     module subroutine push_all_stackt(stk, z, is_cart)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         complex(8), intent(in) :: z
         logical, intent(in), optional :: is_cart
         integer :: i
@@ -72,7 +78,7 @@ contains
     end subroutine push_all_stackt
 
     module subroutine set_stackt(stk, z, idx)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t), intent(in) :: z
         integer, optional, intent(in) :: idx
         if (present(idx)) then
@@ -83,7 +89,7 @@ contains
     end subroutine set_stackt
     
     module function peek_stackt(stk, idx) result(r)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         integer, intent(in) :: idx 
         type(rpn_t) :: r
         if (idx >= 1 .and. idx <= stk%ssize) then
@@ -95,7 +101,7 @@ contains
     end function peek_stackt
     
     module function pop_stackt(stk) result(r)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: r
         integer :: i
         r = stk%sdata(1)
@@ -108,7 +114,7 @@ contains
     end function pop_stackt
     
     module subroutine clear_stackt(stk)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         integer :: i
         do i=1,stk%ssize
             stk%sdata(i) = rpn_t()
@@ -117,7 +123,7 @@ contains
     end subroutine clear_stackt
     
     module subroutine swap_stackt(stk)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
         z = stk%sdata(1)
         stk%sdata(1) = stk%sdata(2)
@@ -125,7 +131,7 @@ contains
     end subroutine swap_stackt
     
     module subroutine rotate_up_stackt(stk)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
         z = stk%pop()
         stk%high_water = stk%high_water + 1
@@ -133,7 +139,7 @@ contains
     end subroutine rotate_up_stackt
     
     module subroutine rotate_down_stackt(stk)
-        class(stack_t(*)), intent(inout) :: stk
+        class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
         z = stk%peek(stk%high_water)
         stk%high_water = stk%high_water - 1
@@ -145,7 +151,17 @@ end submodule stack_sm
 ! Implementation code for rpn_t
 submodule (rpn_stack) rpn_sm
     use iso_fortran_env, only: output_unit
+    use hp_maths
     implicit none
+
+    ! Opaque context for the Lambert-W Newton-Raphson callbacks: carries the
+    ! operand u (and, for the second branch, the first solution s) so the
+    ! callbacks can be module procedures instead of internal closures. flang
+    ! then emits no stack trampoline (Android forbids an executable stack).
+    type :: w_ctx_t
+        real(8) :: u
+        real(8) :: s = 0.0d0
+    end type w_ctx_t
 
 contains
 
@@ -415,6 +431,13 @@ contains
         r = a + b
     end function add_fr
 
+    module function hypot_fr(a,b) result(r)
+        type(rpn_t), intent(in) :: a
+        type(rpn_t), intent(in) :: b
+        type(rpn_t) :: r
+        call r%set_value(cmplx(r_hypot(a%zdata%re, b%zdata%re), 0, 8))
+    end function hypot_fr
+
     module function subtract_fr(a,b) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t), intent(in) :: b
@@ -465,13 +488,13 @@ contains
     module function sqrt_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        call r%set_value(sqrt(a%zdata))
+        call r%set_value(c_sqrt(a%zdata))
     end function sqrt_fr
 
     module function cbrt_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        call r%set_value(a%zdata ** (1.0d0/3))
+        call r%set_value(c_cbrt(a%zdata))
     end function cbrt_fr
 
     module function reciprocal_fr(a) result(r)
@@ -484,7 +507,7 @@ contains
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
         r = a
-        r%zdata%im = -r%zdata%im
+        call r%set_value(c_conj(a%zdata))
     end function conj_fr
     
     module function len_fr(a) result(r)
@@ -498,53 +521,50 @@ contains
     module function swap_real_imaginary_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        real(8) :: x
         r = a
-        x = r%zdata%re
-        r%zdata%re = r%zdata%im
-        r%zdata%im = x
+        call r%set_value(c_swap_reim(a%zdata))
     end function swap_real_imaginary_fr
     
     module function chs_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(cmplx(-a%zdata%re,-a%zdata%im,8))
+        r = rpn_t(c_negate(a%zdata))
     end function chs_fr
     
     module function sine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(sin(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
+        r = rpn_t(c_sin(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
     end function sine_fr
 
     module function cosine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(cos(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
+        r = rpn_t(c_cos(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
     end function cosine_fr
 
     module function tangent_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(tan(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
+        r = rpn_t(c_tan(a%zdata * merge(to_rad,1.0d0,degrees_mode)))
     end function tangent_fr
 
     module function hsine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(sinh(a%zdata))
+        r = rpn_t(c_sinh(a%zdata))
     end function hsine_fr
 
     module function hcosine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(cosh(a%zdata))
+        r = rpn_t(c_cosh(a%zdata))
     end function hcosine_fr
 
     module function htangent_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(tanh(a%zdata))
+        r = rpn_t(c_tanh(a%zdata))
     end function htangent_fr
 
     module function asine_fr(a) result(r)
@@ -552,9 +572,9 @@ contains
         type(rpn_t) :: r
         ! In complex mode do nt convert to degrees
         if (complex_mode) then
-            r = rpn_t(asin(a%zdata))
+            r = rpn_t(c_asin(a%zdata))
         else
-            r = rpn_t(asin(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+            r = rpn_t(c_asin(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
         end if
     end function asine_fr
 
@@ -563,76 +583,76 @@ contains
         type(rpn_t) :: r
         ! In complex mode do nt convert to degrees
         if (complex_mode) then
-            r = rpn_t(acos(a%zdata))
+            r = rpn_t(c_acos(a%zdata))
         else
-            r = rpn_t(acos(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+            r = rpn_t(c_acos(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
         end if
     end function acosine_fr
 
     module function atangent_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(atan(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
+        r = rpn_t(c_atan(a%zdata) * merge(1/to_rad,1.0d0,degrees_mode))
     end function atangent_fr
 
     module function ahsine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(asinh(a%zdata))
+        r = rpn_t(c_asinh(a%zdata))
     end function ahsine_fr
 
     module function ahcosine_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(acosh(a%zdata))
+        r = rpn_t(c_acosh(a%zdata))
     end function ahcosine_fr
 
     module function ahtangent_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(atanh(a%zdata))
+        r = rpn_t(c_atanh(a%zdata))
     end function ahtangent_fr
  
     module function exp_2_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(2**a%zdata)
+        r = rpn_t(c_exp2(a%zdata))
     end function exp_2_fr
 
     module function exp_e_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(exp(a%zdata))
+        r = rpn_t(c_exp(a%zdata))
     end function exp_e_fr
 
     module function exp_10_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(10**a%zdata)
+        r = rpn_t(c_exp10(a%zdata))
     end function exp_10_fr
 
     module function ln_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(log(a%zdata))
+        r = rpn_t(c_ln(a%zdata))
     end function ln_fr
 
     module function log2_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(log(a%zdata)/log(2.0d0))
+        r = rpn_t(c_log2(a%zdata))
     end function log2_fr
 
     module function lg_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(log(a%zdata)/log(10.0d0))
+        r = rpn_t(c_log10(a%zdata))
     end function lg_fr
 
     module function gamma_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        r = rpn_t(gamma(a%zdata%re))
+        r = rpn_t(r_gamma(a%zdata%re))
     end function gamma_fr
 
     module function w_fr(a) result(res)
@@ -650,11 +670,13 @@ contains
         procedure(value_fun_g), pointer :: wf2
         type(res_info_t)    :: r
         real(8), parameter  :: e = exp(1.0d0)
-        real(8) :: x0, xc, s
+        real(8) :: x0, xc
         integer :: n_solutions
         real(8) :: solns(2)
+        type(w_ctx_t) :: wc
 
         n_solutions = 1
+        wc%u = u
         if (u < 0) then
             ! f(x) = e^x + x/u
             ! So in this case we're intersection the line y = x/|u| with the exponential curve y = e^x
@@ -703,7 +725,7 @@ contains
 !             type(res_info_t), intent(out)   :: res
 !         end subroutine modified_newton_raphson_ncl
 
-        call modified_newton_raphson(wf2, x0, 1.0d-10, r, 32)
+        call modified_newton_raphson(wf2, x0, 1.0d-10, r, 32, ctx=wc)
         if (.not. r%solved) then
             write(*,'(a)') '****Error: no solution'
             res = [0.0d0]
@@ -716,9 +738,9 @@ contains
         end if
         if (n_solutions == 2) then
             wf2 => W_minus2_s
-            s = r%solution
+            wc%s = r%solution
             !write(*,'(a,f0.8,3x,2(a,f0.8))') 'u = ',u,'; x0 = ',x0,';  s = ',s
-            call modified_newton_raphson(wf2, x0, 1.0d-10, r, 32)
+            call modified_newton_raphson(wf2, x0, 1.0d-10, r, 32, ctx=wc)
             if (.not. r%solved) then
                 write(*,'(a)') '****Error: no solution'
                 res = 0.0d0
@@ -734,44 +756,57 @@ contains
         !write(*,*) solns(1:n_solutions)
         return
 
-    contains
-
-        function W_plus2(x, err) result(res)
-            class(T1), intent(in) :: x
-            integer, optional, intent(out) :: err
-            class(T1), allocatable             :: res
-            if (present(err)) err = 0
-            allocate(res, source = (exp(x) + x - log(u)))
-        end function W_plus2
-
-        function W_minus2(x, err) result(res)
-            class(T1), intent(in) :: x
-            integer, optional, intent(out) :: err
-            class(T1), allocatable             :: res
-            if (present(err)) err = 0
-            allocate(res, source = exp(x) + x/u)
-        end function W_minus2
-
-        function W_minus2_s(x, err) result(res)
-            class(T1), intent(in) :: x
-            integer, optional, intent(out) :: err
-            class(T1), allocatable             :: res
-            if (present(err)) err = 0
-            allocate(res, source = (exp(x) + x/u)/(x-s))
-        end function W_minus2_s
-
     end function W
+
+    ! Lambert-W residual functions, one per branch. Module procedures (not
+    ! internal closures of W) so their address can be taken without a flang
+    ! trampoline; the operand u and first-branch solution s arrive via ctx.
+    function W_plus2(x, ctx, err) result(res)
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx
+        integer, optional, intent(out) :: err
+        class(T1), allocatable         :: res
+        if (present(err)) err = 0
+        select type (ctx)
+        type is (w_ctx_t)
+            associate (u => ctx%u)
+                allocate(res, source = (exp(x) + x - log(u)))
+            end associate
+        end select
+    end function W_plus2
+
+    function W_minus2(x, ctx, err) result(res)
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx
+        integer, optional, intent(out) :: err
+        class(T1), allocatable         :: res
+        if (present(err)) err = 0
+        select type (ctx)
+        type is (w_ctx_t)
+            associate (u => ctx%u)
+                allocate(res, source = exp(x) + x/u)
+            end associate
+        end select
+    end function W_minus2
+
+    function W_minus2_s(x, ctx, err) result(res)
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx
+        integer, optional, intent(out) :: err
+        class(T1), allocatable         :: res
+        if (present(err)) err = 0
+        select type (ctx)
+        type is (w_ctx_t)
+            associate (u => ctx%u, s => ctx%s)
+                allocate(res, source = (exp(x) + x/u)/(x-s))
+            end associate
+        end select
+    end function W_minus2_s
         
     module function fact_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        associate (v => a%zdata%re)
-            if (v == 0) then
-                r = rpn_t(1)
-            else
-                r = rpn_t(gamma(v+1))
-            end if
-        end associate
+        r = rpn_t(r_factorial(a%zdata%re))
     end function fact_fr
 
     module function ncr_fr(a, b) result(r)
@@ -864,7 +899,7 @@ contains
         type(rpn_t), intent(in) :: a
         type(rpn_t), intent(in) :: b
         type(rpn_t) :: r
-        r%zdata = atan2(real(a%zdata,8),real(b%zdata,8)) * merge(to_deg,1.0d0,degrees_mode)
+        r%zdata = r_atan2(real(a%zdata,8),real(b%zdata,8)) * merge(to_deg,1.0d0,degrees_mode)
     end function atangent2_fr
     
     module function round(x) result(r)
