@@ -1,4 +1,31 @@
+# fpm / build output
 build/*
 docs/fpm-ford
 docs/doxygen_out
+
+# generated compiler-options and dependency files
 foptions.mk
+foptions_*.mk
+depends.mk
+
+# Make build directories and executables
+obj_*/
+/hp
+/hp_d
+/utest_numerical
+/utest_numerical_d
+/test_amap
+
+# editor / tooling artefacts
+tags/
+*~
+
+# Android packaging is regenerable from android/build_hp_apk.sh; the unpacked
+# AndroWish runtime, APKs and tools (~180 MB) are deliberately not tracked.
+android/decoded/
+android/tools/
+android/*.apk
+android/*.apk.idsig
+hp_android_exe
+hp_docs.tgz
+commit-msg

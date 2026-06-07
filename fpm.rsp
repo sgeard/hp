@@ -1,18 +1,18 @@
 @build
 > Building with ifx
-options build --compiler ifx --flag "-stand f23"
+options build --compiler ifx --flag "-stand f23 -fpp"
 ###############################
 @build_debug
 > Building with ifx
-options build --compiler ifx --flag "-stand f23 -g -debug-parameters -O0 -check all"
+options build --compiler ifx --flag "-stand f23 -fpp -g -debug-parameters -O0 -check all"
 ###############################
 @run
 > Running
-options run --compiler ifx
+options run --compiler ifx --flag "-stand f23 -fpp"
 ###############################
 @test
 > Running tests on amap
-options test --compiler ifx
+options test --compiler ifx --flag "-stand f23 -fpp"
 ###############################
 @clean
 > Removing objects and libraries

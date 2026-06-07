@@ -5,6 +5,15 @@ module rpn_stack
 
     implicit none
 
+    ! gfortran and flang mishandle LEN-parameterised module variables (a
+    ! module-scope PDT stack_t(5) yields 0-sized components), so they must use
+    ! the fixed-size implementation. Self-select it from the compiler's own
+    ! predefined macro so every build system (Make, fpm) is correct without
+    ! needing -DNO_PDT on the command line.
+#if (defined(__GFORTRAN__) || defined(__flang__)) && !defined(NO_PDT)
+#   define NO_PDT
+#endif
+
 #ifdef NO_PDT
 #   define STACK_SIZE_TYPE stack_t
     integer, parameter :: STACK_SIZE = 5

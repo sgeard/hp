@@ -22,3 +22,9 @@ copyright = "Copyright 2023, sgeard"
 [dependencies]
 avd = { path = "../../autodiff-git" }
 
+# rpn_stack.f90 / rpn_stack_sm.f90 select a non-PDT implementation under
+# #ifdef NO_PDT, so the sources must be preprocessed.
+[preprocess]
+[preprocess.cpp]
+   suffixes = ["f90", "F90"]
+

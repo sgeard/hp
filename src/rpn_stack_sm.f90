@@ -6,6 +6,12 @@ submodule (rpn_stack) stack_sm
     use iso_fortran_env, only: output_unit
     implicit none
 
+    ! See rpn_stack.f90: gfortran/flang self-select the fixed-size (non-PDT)
+    ! implementation from the compiler's own predefined macro.
+#if (defined(__GFORTRAN__) || defined(__flang__)) && !defined(NO_PDT)
+#   define NO_PDT
+#endif
+
 #ifdef NO_PDT
 #   define STACK_SIZE_TYPE stack_t
 #else
