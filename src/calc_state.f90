@@ -15,6 +15,10 @@
 !! Rule for anything added here later: dispatch targets stay module procedures;
 !! never register an internal procedure as a command action.
 
+#if (defined(__GFORTRAN__) || defined(__flang__)) && !defined(NO_PDT)
+#   define NO_PDT
+#endif
+
 module calc_state
     use rpn_stack, rpn_s_init => init
     use amap, only: amap_t

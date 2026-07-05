@@ -112,6 +112,7 @@ UTEST_OBJS := $(ODIR)/numerical.o $(ODIR)/numerical_sm.o $(ODIR)/hp_maths.o $(OD
 HP_OBJS := $(addprefix $(ODIR)/,$(HP_SRC:.f90=.o))
 
 utest: utest_numerical$(EXT)
+	./utest_numerical$(EXT)
 
 utest_numerical$(EXT): test/utest_numerical.f90 $(UTEST_OBJS) $(AVD_LIB) | $(ODIR)
 	$(F) $(F_OPTS) -o $@ $< $(UTEST_OBJS) $(LFLAGS)

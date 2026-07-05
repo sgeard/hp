@@ -1,9 +1,70 @@
 ! Unit test for numerical
 
+! Newton-Raphson test generators. These are passed to newton_raphson as
+! procedure pointers, so they must be module-level procedures: an internal
+! (host-contained) procedure pointer makes flang emit an executable-stack
+! trampoline, which segfaults under the project's -Wl,-z,noexecstack link.
+module nr_test_funcs
+
+    use AVD, T1=>avd_d1
+    implicit none
+    private
+    public :: s1_g, s2_g, s3_g, s4_g, nr1_g
+
+contains
+
+    function s1_g(x, ctx, err) result(r)
+        class(T1), allocatable         :: r
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
+        integer, optional, intent(out) :: err
+        if (present(err)) err = 0
+        allocate(r, source = 3**x - 2.0d0)
+    end function s1_g
+
+    function s2_g(x, ctx, err) result(r)
+        class(T1), allocatable         :: r
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
+        integer, optional, intent(out) :: err
+        if (present(err)) err = 0
+        allocate(r, source = (3**x - 3.0d0 + x**2))
+    end function s2_g
+
+    function s3_g(x, ctx, err) result(r)
+        class(T1), allocatable         :: r
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
+        integer, optional, intent(out) :: err
+        if (present(err)) err = 0
+        allocate(r, source = 9**x - x**6)
+    end function s3_g
+
+    function s4_g(x, ctx, err) result(r)
+        class(T1), allocatable         :: r
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
+        integer, optional, intent(out) :: err
+        if (present(err)) err = 0
+        allocate(r, source = 6**x - x**18)
+    end function s4_g
+
+    function nr1_g(x, ctx, err) result(r)
+        class(T1), allocatable         :: r
+        class(T1), intent(in)          :: x
+        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
+        integer, optional, intent(out) :: err
+        if (present(err)) err = 0
+        allocate(r, source = 9**x + x**2 - 7)
+    end function nr1_g
+
+end module nr_test_funcs
+
 program utest_numerical
 
     use numerical
     use hp_maths
+    use nr_test_funcs
     use AVD, T1=>avd_d1, T2=>avd_d2, avd_init=>init
 
     implicit none
@@ -13,8 +74,8 @@ program utest_numerical
     real(8)            :: x0, ref
     real(8), parameter :: eps = 1.0d-12
 
-    ! Pure-kernel test bookkeeping
-    integer            :: kpass = 0, kfail = 0
+    ! Pure-kernel and Newton-Raphson test bookkeeping
+    integer            :: kpass = 0, kfail = 0, nrfail = 0
     real(8), parameter :: ktol = 1.0d-9
     real(8), parameter :: pi   = 4*atan(1.0d0)
 
@@ -52,10 +113,19 @@ program utest_numerical
         call check_c('c_log2', c_log2((8.0d0,0.0d0)),       (3.0d0,0.0d0))
         call check_c('c_log10',c_log10((1000.0d0,0.0d0)),   (3.0d0,0.0d0))
         ! real-only kernels
+        call check_r('r_cbrt',       r_cbrt(27.0d0),        3.0d0)
+        call check_r('r_cbrt(-8)',   r_cbrt(-8.0d0),       -2.0d0)
         call check_r('r_hypot',      r_hypot(3.0d0,4.0d0),  5.0d0)
         call check_r('r_gamma',      r_gamma(5.0d0),        24.0d0)
         call check_r('r_factorial',  r_factorial(5.0d0),    120.0d0)
         call check_r('r_factorial(0)',r_factorial(0.0d0),   1.0d0)
+        call check_r('r_ncr',        r_ncr(5.0d0,2.0d0),    10.0d0)
+        call check_r('r_ncr(sym)',   r_ncr(52.0d0,47.0d0),  2598960.0d0)
+        ! beyond gamma's range (n! overflows for n > 170): the ratio loop must not
+        call check_r('r_ncr(200,3)', r_ncr(200.0d0,3.0d0),  1313400.0d0)
+        call check_r('r_ncr(r>n)',   r_ncr(2.0d0,5.0d0),    0.0d0)
+        call check_r('r_npr',        r_npr(5.0d0,2.0d0),    20.0d0)
+        call check_r('r_npr(200,3)', r_npr(200.0d0,3.0d0),  7880400.0d0)
         call check_r('r_atan2',      r_atan2(1.0d0,1.0d0),  pi/4)
         write(*,'(4x,a,i0,a,i0)') 'kernels - passed: ',kpass,'  failed: ',kfail
         if (kfail > 0) error stop 'hp_maths kernel test failed'
@@ -218,6 +288,7 @@ program utest_numerical
   
     end block nr_1
 
+    if (nrfail > 0) error stop 'Newton-Raphson tests failed'
     stop
 
 contains
@@ -253,72 +324,17 @@ contains
 
         if (sln%solved) then
             if (abs(sln%solution-ref) < 1.0d-8) then
-                write (*,'(4x,a,i0,a)') name//' - PASSED: ',res%n_iterations,' iterations'
+                write (*,'(4x,a,i0,a)') name//' - PASSED: ',sln%n_iterations,' iterations'
             else
-                write (*,'(4x,2(a,f0.8))') name//' - FAILED: ',res%solution,' != ',ref
+                nrfail = nrfail + 1
+                write (*,'(4x,2(a,f0.8))') name//' - FAILED: ',sln%solution,' != ',ref
             end if
         else
+            nrfail = nrfail + 1
             write (*,'(4x,a)') name//' - FAILED: iteration limit exceeded'
         end if
 
 
     end subroutine check_solution
-
-    ! ---------------------------------------------------------------
-
-    function s1_g(x, ctx, err) result(r)
-        class(T1), allocatable         :: r
-        class(T1), intent(in)          :: x
-        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
-        integer, optional, intent(out) :: err
-        if (present(err)) err = 0
-        allocate(r, source = 3**x - 2.0d0)
-    end function s1_g
-    
-    ! ---------------------------------------------------------------
- 
-    function s2_g(x, ctx, err) result(r)
-        class(T1), allocatable         :: r
-        class(T1), intent(in)          :: x
-        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
-        integer, optional, intent(out) :: err
-        if (present(err)) err = 0
-        allocate(r, source = (3**x - 3.0d0 + x**2))
-    end function s2_g
-        
-    ! ---------------------------------------------------------------
-
-    function s3_g(x, ctx, err) result(r)
-        class(T1), allocatable         :: r
-        class(T1), intent(in)          :: x
-        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
-        integer, optional, intent(out) :: err
-        if (present(err)) err = 0
-        allocate(r, source = 9**x - x**6)
-    end function s3_g
-
-    ! -------------------------------------------------------------
-
-    function s4_g(x, ctx, err) result(r)
-        class(T1), allocatable         :: r
-        class(T1), intent(in)          :: x
-        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
-        integer, optional, intent(out) :: err
-        if (present(err)) err = 0
-        allocate(r, source = 6**x - x**18)
-    end function s4_g
-    ! -------------------------------------------------------------
-
-    function nr1_g(x, ctx, err) result(r)
-        class(T1), allocatable         :: r
-        class(T1), intent(in)          :: x
-        class(*), intent(in), optional :: ctx ! unused: these test functions need no context
-        integer, optional, intent(out) :: err
-        if (present(err)) err = 0
-        allocate(r, source = 9**x + x**2 - 7)
-    end function nr1_g
-
-    ! -------------------------------------------------------------
-
 
 end program utest_numerical

@@ -131,6 +131,7 @@ contains
     module subroutine swap_stackt(stk)
         class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
+        if (stk%high_water < 2) return
         z = stk%sdata(1)
         stk%sdata(1) = stk%sdata(2)
         stk%sdata(2) = z
@@ -139,6 +140,7 @@ contains
     module subroutine rotate_up_stackt(stk)
         class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
+        if (stk%high_water < 2) return
         z = stk%pop()
         stk%high_water = stk%high_water + 1
         call stk%set(z,stk%high_water)
@@ -147,6 +149,7 @@ contains
     module subroutine rotate_down_stackt(stk)
         class(STACK_SIZE_TYPE), intent(inout) :: stk
         type(rpn_t) :: z
+        if (stk%high_water < 2) return
         z = stk%peek(stk%high_water)
         stk%high_water = stk%high_water - 1
         call stk%push(z)
@@ -500,7 +503,13 @@ contains
     module function cbrt_fr(a) result(r)
         type(rpn_t), intent(in) :: a
         type(rpn_t) :: r
-        call r%set_value(c_cbrt(a%zdata))
+        ! A real operand has a real cube root; the principal complex branch
+        ! would turn -8 into (1,1.732) instead of -2
+        if (a%is_real()) then
+            call r%set_value(cmplx(r_cbrt(a%zdata%re),0,8))
+        else
+            call r%set_value(c_cbrt(a%zdata))
+        end if
     end function cbrt_fr
 
     module function reciprocal_fr(a) result(r)
@@ -818,13 +827,13 @@ contains
     module function ncr_fr(a, b) result(r)
         type(rpn_t), intent(in) :: a, b
         type(rpn_t) :: r
-        r = fact_fr(a)/(fact_fr(b)*fact_fr(a-b))
+        r = rpn_t(r_ncr(a%zdata%re, b%zdata%re))
     end function ncr_fr
 
     module function npr_fr(a, b) result(r)
         type(rpn_t), intent(in) :: a, b
         type(rpn_t) :: r
-        r = fact_fr(a)/fact_fr(b)
+        r = rpn_t(r_npr(a%zdata%re, b%zdata%re))
     end function npr_fr
 
     module function root_fr(a, b) result(r)

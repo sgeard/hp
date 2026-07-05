@@ -212,50 +212,56 @@ contains
             ! Start sequence
             in_sequence = 1
             n_seq = 0
+            ! Fresh arrays per sequence: an x-only sequence must not inherit a
+            ! missing/short y_seq from an earlier pair sequence (or vice versa)
+            if (allocated(x_seq)) deallocate(x_seq)
+            if (allocated(y_seq)) deallocate(y_seq)
             tmp_cmode = complex_mode
             complex_mode = .false.
             call stats%clear()
 
         case('--')
-            call invoke_unary(chs_fr)
+            call invoke_unary(chs_fr, command)
 
         case('^')
+            if (.not. require_operands(1, command)) return
             call stack%push(stack%peek(1))
 
         case('+')
-            call invoke_binary(add_fr)
+            call invoke_binary(add_fr, command)
 
         case('-','−')
-            call invoke_binary(subtract_fr)
+            call invoke_binary(subtract_fr, command)
 
         case('*','×')
-            call invoke_binary(multiply_fr)
+            call invoke_binary(multiply_fr, command)
 
         case('/','÷','∕')
-            call invoke_binary(divide_fr)
+            call invoke_binary(divide_fr, command)
 
         case('^x')
-            call invoke_binary(power_fr)
+            call invoke_binary(power_fr, command)
 
         case('^/x')
             ! Only raising to a real power is supported
             zs = stack%peek(1)
             if (zs%is_real()) then
-                call invoke_binary(root_fr)
+                call invoke_binary(root_fr, command)
             else
                 goto 901
             end if
 
         case('>')
-            call invoke_unary(next_root_fr)
+            call invoke_unary(next_root_fr, command)
 
         case('<')
-            call invoke_unary(previous_root_fr)
+            call invoke_unary(previous_root_fr, command)
 
         case('%')
-            call invoke_binary(percent_fr)
+            call invoke_binary(percent_fr, command)
 
         case('xy','XY')
+           if (.not. require_operands(2, command)) return
            call stack%swap
 
         case('R')
@@ -278,21 +284,22 @@ contains
 
         case('_')
             if (complex_mode) then
-                call invoke_unary(conj_fr)
+                call invoke_unary(conj_fr, command)
             endif
 
         case('len','||')
             if (complex_mode) then
-                call invoke_unary(len_fr)
+                call invoke_unary(len_fr, command)
                 ! Length is always reported as (x,0) and marked is_cartesian
                 zs = stack%peek(1)
                 call zs%set_value(is_cartesian=.true.)
                 call stack%set(zs,1)
             else
-                call invoke_binary(hypot_fr)
+                call invoke_binary(hypot_fr, command)
             end if
 
         case('split')
+            if (.not. require_operands(1, command)) return
             if (.not. complex_mode) then
                 zs = stack%pop()
                 z = zs%get_value()
@@ -308,6 +315,7 @@ contains
             end if
 
         case('int')
+            if (.not. require_operands(1, command)) return
             if (.not. complex_mode) then
                 zs = stack%peek(1)
                 z = zs%get_value()
@@ -322,19 +330,22 @@ contains
             end if
 
         case('nint')
+            if (.not. require_operands(1, command)) return
             if (.not. complex_mode) then
                 zs = stack%peek(1)
                 z = zs%get_value()
                 x = z%re
-                r = nint(x) ! Nearest integer, round up
-                if (mod(abs(r),2.0d0) == 1) then
-                    r = r - 1
+                ! Nearest integer, an exact .5 tie rounding to the even neighbour
+                r = nint(x)
+                if (abs(x - aint(x)) == 0.5d0 .and. mod(abs(r),2.0d0) == 1) then
+                    r = r - sign(1.0d0,r)
                 end if
                 call zs%set_value(cmplx(r,0,8))
                 call stack%set(zs,1)
             end if
 
         case('rem')
+            if (.not. require_operands(1, command)) return
             if (.not. complex_mode) then
                 zs = stack%peek(1)
                 z = zs%get_value()
@@ -350,17 +361,19 @@ contains
             end if
 
         case('drop')
+           if (.not. require_operands(1, command)) return
            zs = stack%pop()
 
         case('ri')
            ! Swap real and imaginary parts
             if (complex_mode) then
-                call invoke_unary(swap_real_imaginary_fr)
+                call invoke_unary(swap_real_imaginary_fr, command)
             end if
 
         case('to_pol')
             ! Convert x + iy to r + i theta
             if (complex_mode) then
+                if (.not. require_operands(1, command)) return
                 zs = stack%peek(1)
                 call stack%set(to_polar(zs))
             end if
@@ -368,90 +381,92 @@ contains
         case('to_cart')
             ! Convert (r,theta) to (x,y)
             if (complex_mode) then
+                if (.not. require_operands(1, command)) return
                 zs = stack%peek(1)
                 call stack%set(to_cartesian(zs))
             end if
 
         case('1/')
-            call invoke_unary(reciprocal_fr)
+            call invoke_unary(reciprocal_fr, command)
 
         case('^2','sq')
-            call invoke_unary(power_2_fr)
+            call invoke_unary(power_2_fr, command)
 
         case('^/2','sqrt','√')
-            call invoke_unary(sqrt_fr)
+            call invoke_unary(sqrt_fr, command)
 
         case('^3','cb')
-            call invoke_unary(power_3_fr)
+            call invoke_unary(power_3_fr, command)
 
         case('^/3','cbrt')
-            call invoke_unary(cbrt_fr)
+            call invoke_unary(cbrt_fr, command)
 
         case('^*2','alog2')
-            call invoke_unary(exp_2_fr)
+            call invoke_unary(exp_2_fr, command)
 
         case('^*10','alog10')
-            call invoke_unary(exp_10_fr)
+            call invoke_unary(exp_10_fr, command)
 
         case('exp','alog')
-            call invoke_unary(exp_e_fr)
+            call invoke_unary(exp_e_fr, command)
 
         case('ln')
-            call invoke_unary(ln_fr)
+            call invoke_unary(ln_fr, command)
 
         case('log2')
-            call invoke_unary(log2_fr)
+            call invoke_unary(log2_fr, command)
 
         case('lg')
-            call invoke_unary(lg_fr)
+            call invoke_unary(lg_fr, command)
 
         case('sinh')
-            call invoke_unary(hsine_fr)
+            call invoke_unary(hsine_fr, command)
 
         case('cosh')
-            call invoke_unary(hcosine_fr)
+            call invoke_unary(hcosine_fr, command)
 
         case('tanh')
-            call invoke_unary(htangent_fr)
+            call invoke_unary(htangent_fr, command)
 
         case('sin')
-            call invoke_unary(sine_fr)
+            call invoke_unary(sine_fr, command)
 
         case('cos')
-            call invoke_unary(cosine_fr)
+            call invoke_unary(cosine_fr, command)
 
         case('tan')
-            call invoke_unary(tangent_fr)
+            call invoke_unary(tangent_fr, command)
 
         case('asin')
-            call invoke_unary(asine_fr)
+            call invoke_unary(asine_fr, command)
 
         case('asinh')
-            call invoke_unary(ahsine_fr)
+            call invoke_unary(ahsine_fr, command)
 
         case('acos')
-            call invoke_unary(acosine_fr)
+            call invoke_unary(acosine_fr, command)
 
         case('acosh')
-            call invoke_unary(ahcosine_fr)
+            call invoke_unary(ahcosine_fr, command)
 
         case('atan')
-            call invoke_unary(atangent_fr)
+            call invoke_unary(atangent_fr, command)
 
         case('atanh')
-            call invoke_unary(ahtangent_fr)
+            call invoke_unary(ahtangent_fr, command)
 
         case('atan2')
-            call invoke_binary(atangent2_fr)
+            call invoke_binary(atangent2_fr, command)
 
         case('gamma')
-            call invoke_unary(gamma_fr)
+            call invoke_unary(gamma_fr, command)
 
         case('W')
             ! Can be two results so need to do something special have_expression
             block
                 real(8), allocatable :: r(:)
                 complex(8) :: cv
+                if (.not. require_operands(1, command)) return
                 if (.not. complex_mode) then
                     zs = stack%peek(1)
                     cv = zs%get_value()
@@ -463,11 +478,16 @@ contains
                         call stack%set(zs,1)
                     else if (cv%re > -exp(-1.0d0)) then
                         r = w_fr(zs)
-                        call zs%set_value(cmplx(r(1),0,8))
-                        call stack%set(zs,1)
                         if (size(r) == 2) then
+                            ! Second root to y via a real push so the stack
+                            ! count includes it, first root replaces x
                             call zs%set_value(cmplx(r(2),0,8))
-                            call stack%set(zs,2)
+                            call stack%set(zs,1)
+                            call zs%set_value(cmplx(r(1),0,8))
+                            call stack%push(zs)
+                        else
+                            call zs%set_value(cmplx(r(1),0,8))
+                            call stack%set(zs,1)
                         end if
                     else
                         write(*,'(a)') '***Error: argument out of range, must be > -1/e'
@@ -476,52 +496,61 @@ contains
             end block
 
         case('!')
+            if (.not. require_operands(1, command)) return
             zs = stack%peek(1)
             if (zs%is_positive_real()) then
-                call invoke_unary(fact_fr)
+                call invoke_unary(fact_fr, command)
             else
                 goto 901
             end if
 
         case('ncr')
+            if (.not. require_operands(2, command)) return
             zs = stack%peek(1)
             us = stack%peek(2)
             if (zs%is_positive_real() .and. us%is_positive_real()) then
-                call invoke_binary(ncr_fr)
+                call invoke_binary(ncr_fr, command)
             else
                 goto 901
             end if
 
         case('npr')
+            if (.not. require_operands(2, command)) return
             zs = stack%peek(1)
             us = stack%peek(2)
             if (zs%is_positive_real() .and. us%is_positive_real()) then
-                call invoke_binary(npr_fr)
+                call invoke_binary(npr_fr, command)
             else
                 goto 901
             end if
 
         case('m0+','m1+','m2+','m3+','m4+','m5+','m6+','m7+','m8+','m9+')
+           if (.not. require_operands(1, command)) return
            read(command(2:2),'(i1)',err=901) m
            mem(m) = mem(m) + stack%peek(1)
 
         case('m0-','m1-','m2-','m3-','m4-','m5-','m6-','m7-','m8-','m9-')
+           if (.not. require_operands(1, command)) return
            read(command(2:2),'(i1)',err=901) m
            mem(m) = mem(m) - stack%peek(1)
 
         case('m0*','m1*','m2*','m3*','m4*','m5*','m6*','m7*','m8*','m9*')
+           if (.not. require_operands(1, command)) return
            read(command(2:2),'(i1)',err=901) m
            mem(m) = mem(m) * stack%peek(1)
 
         case('m0/','m1/','m2/','m3/','m4/','m5/','m6/','m7/','m8/','m9/')
+           if (.not. require_operands(1, command)) return
            read(command(2:2),'(i1)',err=901) m
            mem(m) = mem(m) / stack%peek(1)
 
         case('st0','st1','st2','st3','st4','st5','st6','st7','st8','st9')
+           if (.not. require_operands(1, command)) return
            read(command(3:3),'(i1)',err=901) m
            mem(m) = stack%peek(1)
 
         case('sw0','sw1','sw2','sw3','sw4','sw5','sw6','sw7','sw8','sw9')
+           if (.not. require_operands(1, command)) return
            read(command(3:3),'(i1)',err=901) m
            zs = stack%peek(1)
            call stack%set(mem(m))
@@ -818,11 +847,29 @@ contains
         call rz%set_value(zs,is_cart)
     end subroutine update_angle_unit
 
-    subroutine invoke_binary(action)
+    ! Stack-underflow guard: report like an unknown command and leave the
+    ! stack untouched so the following stack dump shows the unchanged state
+    function require_operands(n, command) result(r)
+        integer, intent(in)      :: n
+        character(*), intent(in) :: command
+        logical :: r
+        r = stack%get_size() >= n
+        if (.not. r) then
+            if (n == 1) then
+                write(6,'(a)') command//' ??? needs 1 operand'
+            else
+                write(6,'(a,i0,a)') command//' ??? needs ',n,' operands'
+            end if
+        end if
+    end function require_operands
+
+    subroutine invoke_binary(action, command)
         procedure(binary_f), pointer, intent(in) :: action
+        character(*), intent(in) :: command
         type(rpn_t) :: us, zs
         logical :: is_cart
 
+        if (.not. require_operands(2, command)) return
         zs = stack%pop()
         if (complex_mode) then
             is_cart = zs%is_cartesian()
@@ -831,7 +878,9 @@ contains
             end if
             us = stack%peek(1)
             if (.not. us%is_cartesian()) then
-                us = to_polar(us)
+                us = to_cartesian(us)
+                ! Either operand being polar keeps the result polar
+                is_cart = .false.
             end if
             us = action(us,zs)
             if (.not. is_cart) then
@@ -844,10 +893,12 @@ contains
         end if
     end subroutine invoke_binary
 
-    subroutine invoke_unary(action)
+    subroutine invoke_unary(action, command)
         procedure(unary_f), pointer, intent(in) :: action
+        character(*), intent(in) :: command
         logical :: is_cart
         type(rpn_t) :: z
+        if (.not. require_operands(1, command)) return
         if (complex_mode) then
             z = stack%peek(1)
             is_cart = z%is_cartesian()

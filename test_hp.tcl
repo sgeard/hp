@@ -47,8 +47,10 @@ check "-c" "5 ^/2 1 + 2 / -- acos"  "(3.141593,1.061275)"
 check ""   "3 4 ||"         "5.000000"
 
 # regression: || must consume both operands. If it leaks the 2nd (y=3),
-# the following + sees 5+3=8 instead of 5+0=5.
-check ""   "3 4 || +"       "5.000000"
+# the following + silently sees 5+3=8; correct consumption leaves one
+# operand, so + reports underflow and x stays 5.
+check ""   "3 4 || +"       "+ ??? needs 2 operands
+5.000000"
 check ""   "3 4 5 || ||"    "7.071068"
 
 # || in complex mode is the modulus (unary); stable under chaining
@@ -103,5 +105,58 @@ upper_qs uqx , uqy -> 1.000000 , 2.000000
 
 Regression: needs at least 2 points"
 
+# nint: nearest integer; an exact .5 tie rounds to the even neighbour
+check "" "3.4 nint"    "3.000000"
+check "" "3 nint"      "3.000000"
+check "" "2.5 nint"    "2.000000"
+check "" "3.5 nint"    "4.000000"
+check "" "-2.5 nint"   "-2.000000"
+
+# Permutations and combinations; n beyond gamma's 170! range must not overflow
+check "" "5 2 npr"     "20.000000"
+check "" "5 2 ncr"     "10.000000"
+check "" "200 3 npr"   "7880400.000000"
+check "" "200 3 ncr"   "1313400.000000"
+
+# Cube root of a negative real is real, not the principal complex branch
+check "" "8 -- cbrt"   "-2.000000"
+check "" "27 ^/3"      "3.000000"
+
+# Stack underflow reports an error and leaves the stack unchanged
+check "" "5 +"         "+ ??? needs 2 operands
+5.000000"
+check "" "sin"         "sin ??? needs 1 operand
+0.000000"
+
+# Both Lambert-W roots are real stack entries (drop exposes W0 in y)
+check "" "-0.1 W drop" "-0.111833"
+
+# Binary ops convert a polar operand to cartesian before ops that read
+# raw parts (atan2); the result stays polar
+check "-c" "(1,60)p 1 atan2"  "(26.565051,0.000000) p"
+
+# regression: an x-only sequence followed by a pair sequence used to write
+# to an unallocated/stale y_seq (crash)
+set ref "    count n -> 3
+    mean ux -> 2.000000
+  stddev sx -> 0.816497
+  median mx -> 2.000000
+lower_q lqx -> 1.500000
+upper_q uqx -> 2.500000
+    count n        -> 2
+    means ux , uy  -> 2.000000 , 3.000000
+  stddevs sx , xy  -> 1.000000 , 1.000000
+  medians mx , my  -> 2.000000 , 3.000000
+lower_qs lqx , lqy -> 2.000000 , 3.000000
+upper_qs uqx , uqy -> 2.000000 , 3.000000
+
+Regression:  y = ax + b
+   gradient a      ->1.000000
+  intercept b      -> 1.000000
+ covariance cov    -> 1.000000
+correlation corr   -> 1.000000"
+check "" "{ 1 2 3 } { 1,2 3,4 }" $ref
+
 # Summary
 puts "\nPassed: $n_passed  Failed: $n_failed"
+exit [expr {$n_failed > 0 ? 1 : 0}]

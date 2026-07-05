@@ -19,7 +19,7 @@ module hp_maths
     public :: c_sinh, c_cosh, c_tanh, c_asinh, c_acosh, c_atanh
     public :: c_exp,  c_exp2, c_exp10, c_ln,   c_log2,  c_log10
     ! Real-only kernels
-    public :: r_hypot, r_gamma, r_factorial, r_atan2
+    public :: r_cbrt, r_hypot, r_gamma, r_factorial, r_ncr, r_npr, r_atan2
 
     interface
         ! --- powers / roots ---
@@ -125,6 +125,10 @@ module hp_maths
         end function c_log10
 
         ! --- real-only kernels ---
+        pure module function r_cbrt(x) result(y)
+            real(real64), intent(in) :: x
+            real(real64)             :: y
+        end function r_cbrt
         pure module function r_hypot(x, y) result(h)
             real(real64), intent(in) :: x, y
             real(real64)             :: h
@@ -137,6 +141,14 @@ module hp_maths
             real(real64), intent(in) :: x
             real(real64)             :: f
         end function r_factorial
+        pure module function r_ncr(n, r) result(c)
+            real(real64), intent(in) :: n, r
+            real(real64)             :: c
+        end function r_ncr
+        pure module function r_npr(n, r) result(p)
+            real(real64), intent(in) :: n, r
+            real(real64)             :: p
+        end function r_npr
         pure module function r_atan2(y, x) result(a)
             real(real64), intent(in) :: y, x
             real(real64)             :: a
