@@ -101,12 +101,14 @@ namespace eval hp {
 
     proc on_eof {} {
         variable chan
-        variable w
         catch {close $chan}
         set chan {}
-        $w(entry) configure -state disabled
-        $w(send)  configure -state disabled
-        to_history {-- hp exited --}
+        # hp has exited - the user quit it (q / quit / =) or it died. There is
+        # nothing left to drive, so close the GUI too rather than leave a dead
+        # window: on a phone it is fullscreen with no decorations, so a stranded
+        # window can't be dismissed. (The window's close button routes through
+        # hp::quit, which sends q and reaches here the same way.)
+        exit
     }
 
     # --- input ------------------------------------------------------------
@@ -170,12 +172,25 @@ namespace eval hp {
         #pack $cf_sb -side right -padx 2 -pady 2
         pack $cf_e -side left -fill x -expand 1
 
-        # Portrait: History (scrollback, expands) over Stack over command entry.
-        grid $hf -row 0 -column 0 -sticky nsew
-        grid $sf -row 1 -column 0 -sticky ew
-        grid $cf -row 2 -column 0 -sticky ew
-        grid columnconfigure . 0 -weight 1
-        grid rowconfigure . 0 -weight 1
+        # Portrait: History (scrollback) over Stack over command entry. The
+        # Stack and the entry are essential and must never be pushed off a
+        # shrinking window; the History transcript is the pane that may give
+        # way. pack expresses that priority: slaves packed first are given their
+        # requested space, and only the last -expand slave (History) absorbs the
+        # slack - so when the window is short the transcript shrinks (and clips)
+        # while the Stack and input line stay put. grid, by contrast, lays out
+        # from the top and lets the bottom rows fall off the edge, which is why
+        # the Stack and entry vanished when the pop-up was dragged smaller.
+        # Inset the content from the toplevel edges. Under overrideredirect the
+        # panes otherwise sit flush against the One UI pop-up window, so the
+        # labelframe left/right borders are clipped and the entry's bottom
+        # corners disappear into the window's rounded corners. A margin all round
+        # - with extra at the bottom to clear the corner radius - keeps every
+        # edge visible. (padx/pady here are the knobs to bump if a device rounds
+        # its corners more aggressively.)
+        pack $cf -side bottom -fill x              -padx 8 -pady {2 16}
+        pack $sf -side bottom -fill x              -padx 8 -pady 2
+        pack $hf -side top -fill both -expand 1    -padx 8 -pady {4 2}
 
         bind $cf_e <Return> hp::submit
         wm protocol . WM_DELETE_WINDOW hp::quit
@@ -232,7 +247,15 @@ namespace eval hp {
         }
         fconfigure $chan -blocking 0 -buffering line
         fileevent $chan readable hp::on_readable
-        focus .cmd.entry
+
+        # Put the cursor in the entry at startup. Force it (there is no window
+        # manager to assign focus under overrideredirect) and re-assert once the
+        # pop-up has finished mapping/rescaling, since an immediate focus can be
+        # dropped as Android settles the surface. (The soft keyboard is left to
+        # appear on the first tap - focus alone does not raise it on AndroWish,
+        # and auto-raising it gained nothing since a tap is needed to type.)
+        focus -force $w(entry)
+        after 400 [list catch [list focus -force $w(entry)]]
     }
 }
 

@@ -1,7 +1,20 @@
+module hp_version
+    implicit none
+    ! Build-provenance stamp (see android_build/stamp_exe.sh). A fresh build
+    ! carries a 126-char field of '=' between two bars; once a build is approved
+    ! it is overwritten IN PLACE (never rebuilt) with the source revision and
+    ! build date. A bar-bounded run of 126 '=' cannot occur in real code or
+    ! data, so the stamper locates the field unambiguously. VOLATILE stops the
+    ! optimiser folding the initialiser away, so -V reads the patched bytes from
+    ! memory rather than an inlined copy of the original.
+    character(len=128), volatile, save :: hp_stamp = '|' // repeat('=',126) // '|'
+end module hp_version
+
 program hp15c
     use calc_state
     use linked_list
     use clib, only: install_exit_handlers
+    use hp_version, only: hp_stamp
 
     implicit none
 
@@ -46,6 +59,10 @@ program hp15c
 
         else if (buff(1:argl) == '-h') then
             call help
+            stop
+
+        else if (buff(1:argl) == '-V') then
+            write(*,'(a)') trim(hp_stamp(2:127))
             stop
 
         end if
